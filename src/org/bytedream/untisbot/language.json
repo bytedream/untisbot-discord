@@ -1,0 +1,40 @@
+{
+  "de": {
+    "language": "German",
+    "title": "Stunden Ausfall Information für {weekday}, den {date}",
+    "cancelled-title": "Ausfall {lesson-name}. Stunde ({start-time} Uhr - {end-time} Uhr)",
+    "cancelled-body": "Ausfall bei {teachers}, in {subjects}, in der {lesson-name}. Stunde",
+    "moved-title": "{from-lesson-name}. Stunde wird zur {to-lesson-name}. Stunde umverlegt",
+    "moved-body": "Die {from-lesson-name}. Stunde bei {teachers} in {subjects} wird zur {to-lesson-name}. Stunde umverlegt",
+    "not-cancelled-title": "KEIN Ausfall {lesson-name}. Stunde ({start-time} Uhr - {end-time} Uhr)",
+    "not-cancelled-body": "KEIN Ausfall bei {teachers}, in {subjects}, in der {lesson-name}. Stunde",
+    "not-moved-title": "{from-lesson-name}. Stunde wird NICHT zur {to-lesson-name}. Stunde umverlegt",
+    "not-moved-body": "Die {from-lesson-name}. Stunde bei {teachers} wird NICHT zur {to-lesson-name}. Stunde umverlegt",
+    "monday": "Montag",
+    "tuesday": "Dienstag",
+    "wednesday": "Mittwoch",
+    "thursday": "Donnerstag",
+    "friday": "Freitag",
+    "saturday": "Samstag",
+    "sunday": "Sonntag"
+  },
+  "en": {
+    "language": "English",
+    "title": "Irregular lesson information for {weekday}, {date}",
+    "cancelled-title": "Cancelled {lesson-name}. lesson ({start-time} - {end-time})",
+    "cancelled-body": "The {lesson-name}. lesson with {teachers} in {subjects} is cancelled",
+    "moved-title": "The {from-lesson-name}. lesson is moved to {to-lesson-name}. lesson",
+    "moved-body": "The {from-lesson-name}. lesson with {teachers} in {subjects} is moved to the {to-lesson-name}. lesson",
+    "not-cancelled-title": "{lesson-name}. lesson ({start-time} - {end-time}) is NO cancelled",
+    "not-cancelled-body": "The {lesson-name}. lesson with {teachers} in {subjects} is NOT cancelled",
+    "not-moved-title": "The {from-lesson-name}. lesson is NOT moved to {to-lesson-name}.",
+    "not-moved-body": "The {from-lesson-name}. lesson with {teachers} in {subjects} is NOT moved to the {to-lesson-name}. lesson",
+    "monday": "monday",
+    "tuesday": "tuesday",
+    "wednesday": "wednesday",
+    "thursday": "thursday",
+    "friday": "friday",
+    "saturday": "saturday",
+    "sunday": "sunday"
+  }
+}
