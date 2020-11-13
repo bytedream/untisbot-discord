@@ -161,4 +161,4 @@ MariaDB examples:
 
 ## License
 
-This project is licensed under the Mozilla Public Licence 2.0 - see the [LICENSE](LICENSE) file for more details
+This project is licensed under the Mozilla Public Licence 2.0 - see the [LICENSE](LICENCE) file for more details
