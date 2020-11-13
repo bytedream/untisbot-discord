@@ -157,3 +157,8 @@ MariaDB examples:
 - [Logger](https://github.com/qos-ch/logback) (logback-core and logback-classic)
 
 **_Note_: The [UntisBot jar file](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and the [Dockerfile](Dockerfile) are containing all dependencies.**
+
+
+## License
+
+This project is licensed under the Mozilla Public Licence 2.0 - see the [LICENSE](LICENSE) file for more details
