@@ -2,7 +2,6 @@ package org.bytedream.untisbot.untis;
 
 import org.bytedream.untis4j.responseObjects.Timetable;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.util.ArrayList;
 

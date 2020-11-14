@@ -16,10 +16,11 @@ public class Utils {
      * @since 1.0
      */
     public static String advancedFormat(String stringToFormat, Map<String, Object> args) {
+        String formattedString = stringToFormat;
         for (Map.Entry<String, Object> entry : args.entrySet()) {
-            stringToFormat = stringToFormat.replace("{" + entry.getKey() + "}", entry.getValue().toString());
+            formattedString = formattedString.replace("{" + entry.getKey() + "}", entry.getValue().toString());
         }
-        return stringToFormat;
+        return formattedString;
     }
 
     /**

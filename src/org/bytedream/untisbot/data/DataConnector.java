@@ -4,8 +4,8 @@ import org.bytedream.untisbot.Crypt;
 import org.bytedream.untisbot.Main;
 
 import java.security.GeneralSecurityException;
-import java.sql.*;
 import java.sql.Date;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;

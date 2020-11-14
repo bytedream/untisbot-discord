@@ -126,7 +126,7 @@ public class Main {
                         logger.info("Set custom language file");
                 }
             } catch (ArrayIndexOutOfBoundsException ignore) {
-                if (arg.trim().toLowerCase().equals("mariadb")) {
+                if (arg.trim().equalsIgnoreCase("mariadb")) {
                     storeType = StoreType.MARIADB;
                     logger.info("Using mariadb for data storage");
                 }

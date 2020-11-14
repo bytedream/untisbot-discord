@@ -1,11 +1,8 @@
 package org.bytedream.untisbot.untis;
 
-import org.bytedream.untis4j.LoginException;
-import org.bytedream.untis4j.RequestManager;
 import org.bytedream.untis4j.Session;
 import org.bytedream.untis4j.UntisUtils;
 import org.bytedream.untis4j.responseObjects.Timetable;
-import org.bytedream.untisbot.Main;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -113,6 +110,8 @@ public class TimetableChecker {
                             cancelledLesson.add(lesson);
                         }
                         break;
+                    default:
+                        // this isn't implemented yet
                 }
             } else if (lesson.getCode() == UntisUtils.LessonCode.IRREGULAR && timetable.searchByStartTime(lesson.getStartTime()).size() == 1 && !allIgnoredLessons.contains(lesson)) {
                 // lesson is maybe moved
