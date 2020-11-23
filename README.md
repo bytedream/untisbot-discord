@@ -69,7 +69,7 @@ To set up the database, you have two options to choose from.
 
 ##### The short one:
 ```bash
-mysql --user=<user> --password=<password> -e "CREATE DATABASE Untis;" && https://raw.githubusercontent.com/ByteDream/untisbot-discord/master/src/org/bytedream/untisbot/dockerfiles/database.sql | mysql --user=<user> --password=<password> Untis
+mysql --user=<user> --password=<password> -e "CREATE DATABASE Untis;" && wget -qO- https://raw.githubusercontent.com/ByteDream/untisbot-discord/master/src/org/bytedream/untisbot/dockerfiles/database.sql | mysql --user=<user> --password=<password> Untis
 ```
 Just copy this and replace `<user>` with the sql user which should manage the database and `<password>` with the user's password.
 

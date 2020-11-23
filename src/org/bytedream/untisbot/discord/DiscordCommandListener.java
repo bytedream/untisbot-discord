@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.bytedream.untis4j.LoginException;
 import org.bytedream.untis4j.Session;
+import org.bytedream.untis4j.responseObjects.Klassen;
 import org.bytedream.untis4j.responseObjects.Teachers;
 import org.bytedream.untis4j.responseObjects.TimeUnits;
 import org.bytedream.untis4j.responseObjects.Timetable;
@@ -32,10 +33,13 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Adapter to handle all events
@@ -51,6 +55,8 @@ public class DiscordCommandListener extends ListenerAdapter {
 
     private final HashMap<Long, Timer> allTimetableChecker = new HashMap<>();
     private final Logger logger = Main.getLogger();
+
+    private final HashMap<Long, LocalDateTime> dataUpdated = new HashMap<>();
 
     /**
      * Sets up the adapter
@@ -79,6 +85,7 @@ public class DiscordCommandListener extends ListenerAdapter {
      */
     public void runTimetableChecker(Guild guild) {
         long guildId = guild.getIdLong();
+        String guildName = guild.getName();
         Timer timer = new Timer();
         Data.Guild data = guildDataConnector.get(guildId);
         TimetableChecker timetableChecker;
@@ -96,18 +103,18 @@ public class DiscordCommandListener extends ListenerAdapter {
             timetableChecker = new TimetableChecker(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool(), data.getKlasseId());
         } catch (LoginException e) {
             e.printStackTrace();
-            logger.warn(guild.getName() + " failed to login", e);
+            logger.warn(guildName + " failed to login", e);
             textChannel.sendMessage("Failed to login. Please try to re-set your data").queue();
             return;
         } catch (IOException e) {
             e.printStackTrace();
-            logger.warn(guild.getName() + " ran into an exception while trying to setup the timetable checker", e);
+            logger.warn(guildName + " ran into an exception while trying to setup the timetable checker", e);
             textChannel.sendMessage("An error occurred while trying to setup the timetable checking process." +
                     "You should try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
             return;
         }
         timer.scheduleAtFixedRate(new TimerTask() {
-            private int latestImportTime = 0;
+            private long latestImportTime = 0;
 
             private void main() {
                 Data.Guild data = guildDataConnector.get(guildId);
@@ -124,6 +131,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     }
                 }
 
+                boolean changes = false;
                 boolean error = false;
                 Data.Stats stats = statsDataConnector.get(guildId);
                 String setLanguage = data.getLanguage();
@@ -147,6 +155,9 @@ public class DiscordCommandListener extends ListenerAdapter {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    i++;
+                    daysToCheck++;
                 }
 
                 for (; i <= daysToCheck; i++) {
@@ -154,124 +165,128 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         CheckCallback checkCallback = timetableChecker.check(localDate);
 
-                        EmbedBuilder embedBuilder = new EmbedBuilder();
-                        embedBuilder.setColor(Color.CYAN);
-                        embedBuilder.setTitle(Utils.advancedFormat(language.getString("title"), new HashMap<String, Object>() {{
-                            put("weekday", language.getString(localDate.getDayOfWeek().name().toLowerCase()));
-                            put("date", localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                        }}));
-
                         ArrayList<Timetable.Lesson> cancelledLessons = checkCallback.getCancelled();
                         ArrayList<Timetable.Lesson[]> movedLessons = checkCallback.getMoved();
                         ArrayList<Timetable.Lesson> notCancelledLessons = checkCallback.getNotCancelled();
                         ArrayList<Timetable.Lesson[]> notMovedLessons = checkCallback.getNotMoved();
 
-                        for (Timetable.Lesson lesson : cancelledLessons) {
-                            TimeUnits.TimeUnitObject timeUnitObject = lesson.getTimeUnitObject();
-                            HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
-                                put("lesson-name", timeUnitObject.getName());
-                                put("date", lesson.getDate());
-                                put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
-                                put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
-                                put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
-                            }};
-                            embedBuilder.addField(Utils.advancedFormat(language.getString("cancelled-title"), formatMap),
-                                    Utils.advancedFormat(language.getString("cancelled-body"), formatMap), false);
-                        }
+                        if (cancelledLessons.size() != 0 || movedLessons.size() != 0 || notCancelledLessons.size() != 0 || notMovedLessons.size() != 0) {
+                            changes = true;
 
-                        for (Timetable.Lesson[] lesson : movedLessons) {
-                            TimeUnits.TimeUnitObject timeUnitObject = lesson[0].getTimeUnitObject();
-                            Timetable.Lesson to = lesson[0];
-                            Timetable.Lesson from = lesson[1];
-                            HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
-                                put("from-lesson-name", from.getTimeUnitObject().getName());
-                                put("to-lesson-name", to.getTimeUnitObject().getName());
-                                put("date", from.getDate());
-                                put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("teachers", String.join(", ", from.getTeachers().getFullNames()));
-                                put("subjects", String.join(", ", from.getSubjects().getLongNames()));
-                                put("rooms", String.join(", ", from.getRooms().getLongNames()));
-                            }};
-                            embedBuilder.addField(Utils.advancedFormat(language.getString("moved-title"), formatMap),
-                                    Utils.advancedFormat(language.getString("moved-body"), formatMap), false);
-                        }
+                            EmbedBuilder embedBuilder = new EmbedBuilder();
+                            embedBuilder.setColor(Color.CYAN);
+                            embedBuilder.setTitle(Utils.advancedFormat(language.getString("title"), new HashMap<String, Object>() {{
+                                put("weekday", language.getString(localDate.getDayOfWeek().name().toLowerCase()));
+                                put("date", localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                            }}));
 
-                        for (Timetable.Lesson lesson : notCancelledLessons) {
-                            TimeUnits.TimeUnitObject timeUnitObject = lesson.getTimeUnitObject();
-                            HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
-                                put("lesson-name", timeUnitObject.getName());
-                                put("date", lesson.getDate());
-                                put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
-                                put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
-                                put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
-                            }};
-                            embedBuilder.addField(Utils.advancedFormat(language.getString("not-cancelled-title"), formatMap),
-                                    Utils.advancedFormat(languages.getString("not-cancelled-body"), formatMap), false);
-                        }
-
-                        for (Timetable.Lesson[] lesson : notMovedLessons) {
-                            TimeUnits.TimeUnitObject timeUnitObject = lesson[0].getTimeUnitObject();
-                            Timetable.Lesson from = lesson[0];
-                            Timetable.Lesson to = lesson[1];
-                            HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
-                                put("from-lesson-name", from.getTimeUnitObject().getName());
-                                put("to-lesson-name", to.getTimeUnitObject().getName());
-                                put("date", from.getDate());
-                                put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                put("teachers", String.join(", ", from.getTeachers().getFullNames()));
-                                put("subjects", String.join(", ", from.getSubjects().getLongNames()));
-                                put("rooms", String.join(", ", from.getRooms().getLongNames()));
-                            }};
-                            embedBuilder.addField(Utils.advancedFormat(language.getString("not-moved-title"), formatMap),
-                                    Utils.advancedFormat(language.getString("not-moved-body"), formatMap), false);
-                        }
-                        if (!embedBuilder.getFields().isEmpty()) {
-                            textChannel.sendMessage(embedBuilder.build()).queue();
-                        }
-
-                        LocalDate lastChecked = guildDataConnector.get(guildId).getLastChecked();
-                        Short totalDays = stats.getTotalDays();
-                        int totalLessons = stats.getTotalLessons();
-
-                        if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
-                            totalDays++;
-                            totalLessons += checkCallback.getAllLessons().size();
-                            guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
-                        }
-                        short totalCancelledLessons = (short) (stats.getTotalCancelledLessons() + cancelledLessons.size() - notCancelledLessons.size());
-                        short totalMovedLessons = (short) (stats.getTotalMovedLessons() + movedLessons.size() - notMovedLessons.size());
-
-                        statsDataConnector.update(guildId, stats.getTotalRequests() + 1, totalDays, totalLessons, totalCancelledLessons, totalMovedLessons,
-                                (float) Utils.round((float) totalCancelledLessons / totalLessons, 3) * 5,
-                                (float) Utils.round((float) totalMovedLessons / totalLessons, 3) * 5);
-
-                        for (Timetable.Lesson lesson : checkCallback.getCancelled()) {
-                            HashMap<String, Short> teachers = stats.getAbsentTeachers();
-                            for (Teachers.TeacherObject teacher : lesson.getTeachers()) {
-                                String name = teacher.getFullName();
-                                statsDataConnector.updateAbsentTeachers(guildId, name, (short) (teachers.getOrDefault(name, (short) 0) + 1));
+                            for (Timetable.Lesson lesson : cancelledLessons) {
+                                TimeUnits.TimeUnitObject timeUnitObject = lesson.getTimeUnitObject();
+                                HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
+                                    put("lesson-name", timeUnitObject.getName());
+                                    put("date", lesson.getDate());
+                                    put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
+                                    put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
+                                    put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
+                                }};
+                                embedBuilder.addField(Utils.advancedFormat(language.getString("cancelled-title"), formatMap),
+                                        Utils.advancedFormat(language.getString("cancelled-body"), formatMap), false);
                             }
-                        }
-                        for (Timetable.Lesson lesson : checkCallback.getNotCancelled()) {
-                            HashMap<String, Short> teachers = stats.getAbsentTeachers();
-                            for (Teachers.TeacherObject teacher : lesson.getTeachers()) {
-                                String name = teacher.getFullName();
-                                statsDataConnector.updateAbsentTeachers(guildId, name, (short) (teachers.getOrDefault(name, (short) 0) - 1));
-                            }
-                        }
-                        stats = statsDataConnector.get(guildId);
 
-                        if (error) {
-                            error = false;
+                            for (Timetable.Lesson[] lesson : movedLessons) {
+                                TimeUnits.TimeUnitObject timeUnitObject = lesson[0].getTimeUnitObject();
+                                Timetable.Lesson to = lesson[0];
+                                Timetable.Lesson from = lesson[1];
+                                HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
+                                    put("from-lesson-name", from.getTimeUnitObject().getName());
+                                    put("to-lesson-name", to.getTimeUnitObject().getName());
+                                    put("date", from.getDate());
+                                    put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("teachers", String.join(", ", from.getTeachers().getFullNames()));
+                                    put("subjects", String.join(", ", from.getSubjects().getLongNames()));
+                                    put("rooms", String.join(", ", from.getRooms().getLongNames()));
+                                }};
+                                embedBuilder.addField(Utils.advancedFormat(language.getString("moved-title"), formatMap),
+                                        Utils.advancedFormat(language.getString("moved-body"), formatMap), false);
+                            }
+
+                            for (Timetable.Lesson lesson : notCancelledLessons) {
+                                TimeUnits.TimeUnitObject timeUnitObject = lesson.getTimeUnitObject();
+                                HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
+                                    put("lesson-name", timeUnitObject.getName());
+                                    put("date", lesson.getDate());
+                                    put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
+                                    put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
+                                    put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
+                                }};
+                                embedBuilder.addField(Utils.advancedFormat(language.getString("not-cancelled-title"), formatMap),
+                                        Utils.advancedFormat(languages.getString("not-cancelled-body"), formatMap), false);
+                            }
+
+                            for (Timetable.Lesson[] lesson : notMovedLessons) {
+                                TimeUnits.TimeUnitObject timeUnitObject = lesson[0].getTimeUnitObject();
+                                Timetable.Lesson from = lesson[0];
+                                Timetable.Lesson to = lesson[1];
+                                HashMap<String, Object> formatMap = new HashMap<String, Object>() {{
+                                    put("from-lesson-name", from.getTimeUnitObject().getName());
+                                    put("to-lesson-name", to.getTimeUnitObject().getName());
+                                    put("date", from.getDate());
+                                    put("start-time", timeUnitObject.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("end-time", timeUnitObject.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("teachers", String.join(", ", from.getTeachers().getFullNames()));
+                                    put("subjects", String.join(", ", from.getSubjects().getLongNames()));
+                                    put("rooms", String.join(", ", from.getRooms().getLongNames()));
+                                }};
+                                embedBuilder.addField(Utils.advancedFormat(language.getString("not-moved-title"), formatMap),
+                                        Utils.advancedFormat(language.getString("not-moved-body"), formatMap), false);
+                            }
+                            if (!embedBuilder.getFields().isEmpty()) {
+                                textChannel.sendMessage(embedBuilder.build()).queue();
+                            }
+
+                            LocalDate lastChecked = guildDataConnector.get(guildId).getLastChecked();
+                            Short totalDays = stats.getTotalDays();
+                            int totalLessons = stats.getTotalLessons();
+
+                            if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
+                                totalDays++;
+                                totalLessons += checkCallback.getAllLessons().size();
+                                guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
+                            }
+                            short totalCancelledLessons = (short) (stats.getTotalCancelledLessons() + cancelledLessons.size() - notCancelledLessons.size());
+                            short totalMovedLessons = (short) (stats.getTotalMovedLessons() + movedLessons.size() - notMovedLessons.size());
+
+                            statsDataConnector.update(guildId, stats.getTotalRequests() + 1, totalDays, totalLessons, totalCancelledLessons, totalMovedLessons,
+                                    (float) Utils.round((float) totalCancelledLessons / totalLessons, 3) * 5,
+                                    (float) Utils.round((float) totalMovedLessons / totalLessons, 3) * 5);
+
+                            for (Timetable.Lesson lesson : checkCallback.getCancelled()) {
+                                HashMap<String, Short> teachers = stats.getAbsentTeachers();
+                                for (Teachers.TeacherObject teacher : lesson.getTeachers()) {
+                                    String name = teacher.getFullName();
+                                    statsDataConnector.updateAbsentTeachers(guildId, name, (short) (teachers.getOrDefault(name, (short) 0) + 1));
+                                }
+                            }
+                            for (Timetable.Lesson lesson : checkCallback.getNotCancelled()) {
+                                HashMap<String, Short> teachers = stats.getAbsentTeachers();
+                                for (Teachers.TeacherObject teacher : lesson.getTeachers()) {
+                                    String name = teacher.getFullName();
+                                    statsDataConnector.updateAbsentTeachers(guildId, name, (short) (teachers.getOrDefault(name, (short) 0) - 1));
+                                }
+                            }
+                            stats = statsDataConnector.get(guildId);
+
+                            if (error) {
+                                error = false;
+                            }
                         }
                     } catch (Exception e) {
-                        logger.warn(guild.getName() + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
+                        logger.warn(guildName + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
                         if (!error) {
                             textChannel.sendMessage("An error occurred while trying to check the timetable." +
                                     "You can try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
@@ -283,26 +298,40 @@ public class DiscordCommandListener extends ListenerAdapter {
                         }
                     }
                 }
+                String changesString = "no changes";
+
+                if (changes) {
+                    changesString = "changes";
+                }
+
+                logger.info("Checked timetable for " + guildName + " - " + changesString);
             }
 
             @Override
             public void run() {
+                Thread.currentThread().setName(guildName + "(" + guildId + ")");
                 try {
                     Session session = timetableChecker.getSession();
                     session.reconnect();
-                    if (latestImportTime < session.getLatestImportTime().getLatestImportTime()) {
-                        latestImportTime = session.getLatestImportTime().getLatestImportTime();
+                    long sessionLatestImportTime = session.getLatestImportTime().getLatestImportTime();
+                    if (latestImportTime < sessionLatestImportTime) {
+                        latestImportTime = sessionLatestImportTime;
                         main();
                     } else {
-                        main();
+                        try {
+                            Main.getConnection().createStatement().execute("SELECT * FROM Guilds WHERE GUILDID = 0");
+                            // just execute this so that the connect won't have a timeout
+                        } catch (SQLException ignore) {
+                        }
                     }
                 } catch (IOException e) {
+                    logger.info("Running main through IOException (" + e.getCause() + ")");
                     main();
                 }
             }
         }, 0, data.getSleepTime());
         allTimetableChecker.put(guildId, timer);
-        logger.info(guild.getName() + " started timetable listening");
+        logger.info(guildName + " started timetable listening");
     }
 
     @Override
@@ -334,7 +363,7 @@ public class DiscordCommandListener extends ListenerAdapter {
 
     @Override
     public void onGuildMessageReceived(GuildMessageReceivedEvent event) {
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             long guildId = event.getGuild().getIdLong();
             Data.Guild data = guildDataConnector.get(guildId);
             try {
@@ -433,55 +462,65 @@ public class DiscordCommandListener extends ListenerAdapter {
                             break;
                         case "data": // `data <username> <password> <server> <school name>` command
                             if (args.length >= 3 && args.length <= 4) {
-                                String schoolName;
-                                try {
-                                    schoolName = new URL(args[2]).getQuery().split("=")[1];
-                                } catch (MalformedURLException | ArrayIndexOutOfBoundsException e) {
-                                    channel.sendMessage("The given login data is invalid").queue();
-                                    return;
-                                }
-                                String server = args[2].replace("https://", "").replace("http://", "");
-                                server = "https://" + server.substring(0, server.indexOf("/"));
-                                short klasseId;
-                                try {
-                                    channel.sendMessage("Verifying data...").queue();
-                                    Session session = Session.login(args[0], args[1], server, schoolName);
-                                    if (args.length == 3) {
-                                        klasseId = (short) session.getInfos().getKlasseId();
-                                    } else {
-                                        try {
-                                            klasseId = (short) session.getKlassen().findByName(args[3]).getId();
-                                        } catch (NullPointerException e) {
-                                            channel.sendMessage("❌ Cannot find the given class").queue();
-                                            return;
-                                        }
+                                if (dataUpdated.getOrDefault(guildId, LocalDateTime.MIN).plusMinutes(1).isAfter(LocalDateTime.now())) {
+                                    // this gives the server a little decay time and prevents additional load (because of the untis data encryption) caused by spamming
+                                    channel.sendMessage("The data was changed recently, try again in about one minute").queue();
+                                } else {
+                                    dataUpdated.put(guildId, LocalDateTime.now());
+                                    String schoolName;
+                                    String className;
+                                    try {
+                                        schoolName = new URL(args[2]).getQuery().split("=")[1];
+                                    } catch (MalformedURLException | ArrayIndexOutOfBoundsException e) {
+                                        channel.sendMessage("The given login data is invalid").queue();
+                                        return;
                                     }
-                                    session.logout();
-                                } catch (IOException e) {
-                                    channel.sendMessage("❌ The given login data is invalid").queue();
-                                    return;
-                                }
+                                    String server = args[2].replace("https://", "").replace("http://", "");
+                                    server = "https://" + server.substring(0, server.indexOf("/"));
+                                    short klasseId;
+                                    try {
+                                        channel.sendMessage("Verifying data...").queue();
+                                        Session session = Session.login(args[0], args[1], server, schoolName);
+                                        if (args.length == 3) {
+                                            klasseId = (short) session.getInfos().getKlasseId();
+                                            className = session.getKlassen().findById(klasseId).getName();
+                                        } else {
+                                            try {
+                                                Klassen.KlasseObject klasse = session.getKlassen().findByName(args[3]);
+                                                klasseId = (short) klasse.getId();
+                                                className = klasse.getName();
+                                            } catch (NullPointerException e) {
+                                                channel.sendMessage("❌ Cannot find the given class").queue();
+                                                return;
+                                            }
+                                        }
+                                        session.logout();
+                                    } catch (IOException e) {
+                                        channel.sendMessage("❌ The given login data is invalid").queue();
+                                        return;
+                                    }
 
-                                boolean isCheckActive = data.isCheckActive();
+                                    boolean isCheckActive = data.isCheckActive();
 
-                                if (data.getChannelId() == null) {
-                                    guildDataConnector.update(guildId, null, args[0], args[1], server, schoolName, klasseId, channel.getIdLong(), null, null, true, null);
-                                } else {
-                                    guildDataConnector.update(guildId, null, args[0], args[1], server, schoolName, klasseId, null, null, null, true, null);
-                                }
+                                    if (data.getChannelId() == null) {
+                                        guildDataConnector.update(guildId, null, args[0], args[1], server, schoolName, klasseId, channel.getIdLong(), null, null, true, null);
+                                    } else {
+                                        guildDataConnector.update(guildId, null, args[0], args[1], server, schoolName, klasseId, null, null, null, true, null);
+                                    }
 
-                                if (isCheckActive) {
-                                    Timer timer = allTimetableChecker.get(guildId);
-                                    timer.cancel();
-                                    timer.purge();
-                                    allTimetableChecker.remove(guildId);
-                                    runTimetableChecker(guild);
-                                    channel.sendMessage("✅ Updated data and restarted timetable listening").queue();
-                                } else {
-                                    runTimetableChecker(guild);
-                                    channel.sendMessage("✅ Timetable listening has been started").queue();
+                                    if (isCheckActive) {
+                                        Timer timer = allTimetableChecker.get(guildId);
+                                        allTimetableChecker.remove(guildId);
+                                        timer.cancel();
+                                        timer.purge();
+                                        runTimetableChecker(guild);
+                                        channel.sendMessage("✅ Updated data and restarted timetable listening for class " + className).queue();
+                                    } else {
+                                        runTimetableChecker(guild);
+                                        channel.sendMessage("✅ Timetable listening has been started for class " + className).queue();
+                                    }
+                                    logger.info(guildName + " set new data");
                                 }
-                                logger.info(guildName + " set new data");
                             } else {
                                 channel.sendMessage("Wrong number of arguments were given (expected 3 or 4, got " + args.length + "), type `" + data.getPrefix() + "help data` for help").queue();
                             }
@@ -535,12 +574,14 @@ public class DiscordCommandListener extends ListenerAdapter {
                 }
             } catch (NullPointerException ignore) {
             }
-        }).start();
+        });
+        t.setName("Guild message handler");
+        t.start();
     }
 
     @Override
-    public void onMessageReceived(@NotNull MessageReceivedEvent event) { // only for `help` command
-        new Thread(() -> {
+    public void onMessageReceived(@NotNull MessageReceivedEvent event) { // only for the `help` command
+        Thread t = new Thread(() -> {
             if (event.getAuthor().isBot()) {
                 return;
             }
@@ -636,7 +677,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                 embedBuilder.setFooter("`<>` = required; `[]` = optional");
                 channel.sendMessage(embedBuilder.build()).queue();
             }
-        }).start();
+        });
+        t.setName("Message handler");
     }
 
     @Override
