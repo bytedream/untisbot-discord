@@ -2,7 +2,7 @@
 
 **UntisBot** is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) timetable software / api to automatically sends messages when the timetable from a given account or class changes.
 You can invite the bot right [here](https://discord.com/api/oauth2/authorize?client_id=768841979433451520&permissions=268437504&scope=bot) or [host it yourself](#Self-hosting).
-https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar
+
 <p align="center">
     <a href="#Commands">Commands</a>
     •
