@@ -1,8 +1,8 @@
 ### UntisBot
 
 **UntisBot** is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) timetable software / api to automatically sends messages when the timetable from a given account or class changes.
-You can invite the bot right [here](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) or [host it yourself](#Self-hosting).
-
+You can invite the bot right [here](https://discord.com/api/oauth2/authorize?client_id=768841979433451520&permissions=268437504&scope=bot) or [host it yourself](#Self-hosting).
+https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar
 <p align="center">
     <a href="#Commands">Commands</a>
     •
@@ -62,7 +62,7 @@ When you run the bot manually you can choose from 2 types of data storage:
  
 ### In-memory storage
 
-In memory data storage is pretty simple: Just download the [jar]() and run it with `java -jar UntisBot-1.0.jar token=<your discord bot token>`.
+In memory data storage is pretty simple: Just download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar token=<your discord bot token>`.
 The simple things have unfortunately also often disadvantages: The user data is only stored as long as the bot is running. If you shut it down, all data will be lost.
 If you want to keep the data even after a shutdown, you should use [database storage](#MariaDB).
 
@@ -79,7 +79,7 @@ To set up the database, you have to execute the following command and replace `<
 mysql -u <user> -p -e "CREATE DATABASE Untis; USE Untis; $(wget -qO- https://raw.githubusercontent.com/ByteDream/untisbot-discord/master/files/database.sql)"
 ```
 
-Now you have set up the database and are ready to go. Download the [jar]() and run it with `java -jar UntisBot-1.0.jar <your discord bot token> mariadb`.
+Now you have set up the database and are ready to go. Download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar <your discord bot token> mariadb`.
 
 ## Run options
 
