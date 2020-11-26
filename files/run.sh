@@ -2,7 +2,7 @@
 
 /scripts/run.sh &
 
-sleep 10
+sleep 10  # boot time of mariadb
 
 mariadb --user=root --password="$MYSQL_ROOT_PASSWORD" -h 127.0.0.1 Untis < "/untisbot-discord/database.sql"
 

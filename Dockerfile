@@ -2,7 +2,7 @@ FROM yobasystems/alpine-mariadb:latest
 
 ENV token ""
 ENV password "toor"
-ENV encrypt ""
+ENV encrypt "password"
 
 ENV MYSQL_DATABASE "Untis"
 ENV MYSQL_ROOT_PASSWORD $password
@@ -21,8 +21,8 @@ RUN wget -O /untisbot-discord/lib/logback-core.jar https://repo1.maven.org/maven
     wget -O /untisbot-discord/lib/untis4j.jar "$(curl -s https://api.github.com/repos/ByteDream/untis4j/releases/latest | grep "browser_download_url" | grep "withDependencies.jar" | cut -d '"' -f 4)" && \
     wget -O /untisbot-discord/lib/JDA.jar "$(curl -s https://api.github.com/repos/DV8FromTheWorld/JDA/releases/latest | grep "browser_download_url" | grep "withDependencies-min.jar" | cut -d '"' -f 4)"
 
-COPY dockerfiles/run.sh /untisbot-discord/
-COPY dockerfiles/database.sql /untisbot-discord/
+COPY files/run.sh /untisbot-discord/
+COPY files/database.sql /untisbot-discord/
 COPY src/ /untisbot-discord/src
 
 EXPOSE 3306

@@ -94,8 +94,8 @@ public class DiscordCommandListener extends ListenerAdapter {
             textChannel = guild.getDefaultChannel();
             if (textChannel != null) {
                 guildDataConnector.update(guildId, null, null, null, null, null, null, textChannel.getIdLong(), null, null, null, null);
-                textChannel.sendMessage("It seems like, that the channel where I should send the timetable messages in doesn't exists anymore." +
-                        "I'll send the changes now in this channel." +
+                textChannel.sendMessage("It seems like, that the channel where I should send the timetable messages in doesn't exists anymore. " +
+                        "I'll send the changes now in this channel. " +
                         "If you want that I send these messages into another channel, type `" + data.getPrefix() + "channel` in the channel where I should send the messages in").queue();
             }
         }
@@ -109,7 +109,7 @@ public class DiscordCommandListener extends ListenerAdapter {
         } catch (IOException e) {
             e.printStackTrace();
             logger.warn(guildName + " ran into an exception while trying to setup the timetable checker", e);
-            textChannel.sendMessage("An error occurred while trying to setup the timetable checking process." +
+            textChannel.sendMessage("An error occurred while trying to setup the timetable checking process. " +
                     "You should try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
             return;
         }
@@ -126,7 +126,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     } else {
                         guildDataConnector.update(guildId, null, null, null, null, null, null, textChannel.getIdLong(), null, null, null, null);
                         textChannel.sendMessage("It seems like, that the channel where I should send the timetable messages in doesn't exists anymore. " +
-                                "I'll send the changes now in this channel." +
+                                "I'll send the changes now in this channel. " +
                                 "If you want that I send these messages into another channel, type `" + data.getPrefix() + "set-channel` in the channel where I should send the messages in").queue();
                     }
                 }
@@ -288,7 +288,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     } catch (Exception e) {
                         logger.warn(guildName + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
                         if (!error) {
-                            textChannel.sendMessage("An error occurred while trying to check the timetable." +
+                            textChannel.sendMessage("An error occurred while trying to check the timetable. " +
                                     "You can try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
                             error = true;
                         }
