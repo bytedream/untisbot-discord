@@ -12,7 +12,6 @@ import org.json.JSONTokener;
 import javax.security.auth.login.LoginException;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -50,6 +49,7 @@ public class Discord {
 
     /**
      * Show rich presence if a bot update was released within then last 24 hours
+     *
      * @since 1.1
      */
     private void updateRichPresence() {

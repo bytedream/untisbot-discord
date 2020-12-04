@@ -89,12 +89,11 @@ public class DiscordCommandListener extends ListenerAdapter {
     /**
      * Runs a command
      *
-     * @param guild guild from which the command came
-     * @param channel channel from which the command came
+     * @param guild      guild from which the command came
+     * @param channel    channel from which the command came
      * @param permission if true, commands which needs (admin) permission to run, can be executed
-     * @param command command to execute
-     * @param args extra arguments for the command
-     *
+     * @param command    command to execute
+     * @param args       extra arguments for the command
      * @since 1.1
      */
     private void runCommand(Guild guild, TextChannel channel, boolean permission, String command, String[] args) {
@@ -174,7 +173,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         session.reconnect();
                         className = session.getKlassen().findById(classId).getName();
-                    } catch (IOException ignore) {}
+                    } catch (IOException ignore) {
+                    }
 
                     String finalClassName = className; // yea java...
                     LocalDate finalDate = date; // yea java part two...
@@ -195,7 +195,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         }
                         for (int i = 0; i < lessons.size(); i++) {
                             ArrayList<Timetable.Lesson> listLessons = (ArrayList<Timetable.Lesson>) lessons.values().toArray()[i];
-                            for (Timetable.Lesson lesson: (ArrayList<Timetable.Lesson>) lessons.values().toArray()[i]) {
+                            for (Timetable.Lesson lesson : (ArrayList<Timetable.Lesson>) lessons.values().toArray()[i]) {
                                 String additional = "";
                                 if (lesson.getCode() == UntisUtils.LessonCode.CANCELLED) {
                                     additional = "~~";
@@ -293,8 +293,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         if (!data.isCheckActive()) {
                             embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` to re-enable it - use `" + data.getPrefix() + "help start` for more details");
                         }
-                    }
-                    else {
+                    } else {
                         dataSet = "❌ Not set";
                         embedBuilder.setFooter("To set your data, type `" + data.getPrefix() + "set-data <username> <password> <loginpage url>` - use `" + data.getPrefix() + "help data` for more details");
                     }
@@ -681,7 +680,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 error = false;
                             }
                         } else if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
-                                guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
+                            guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
                         }
                     } catch (Exception e) {
                         logger.warn(guildName + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
@@ -777,7 +776,7 @@ public class DiscordCommandListener extends ListenerAdapter {
             String command = "";
             String[] args = null;
 
-            for (String cmd: commands) {
+            for (String cmd : commands) {
                 if (message.contains(cmd)) {
                     if (event.isFromGuild()) {
                         prefix = guildDataConnector.get(event.getGuild().getIdLong()).getPrefix();
