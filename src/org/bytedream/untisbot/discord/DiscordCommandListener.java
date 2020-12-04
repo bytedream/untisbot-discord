@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.bytedream.untis4j.Session;
+import org.bytedream.untis4j.UntisUtils;
 import org.bytedream.untis4j.responseObjects.Klassen;
 import org.bytedream.untis4j.responseObjects.Teachers;
 import org.bytedream.untis4j.responseObjects.TimeUnits;
@@ -97,26 +98,23 @@ public class DiscordCommandListener extends ListenerAdapter {
                 if (args.length < 3) {
                     Session session = allUntisSessions.get(guildId);
                     LocalDate now = LocalDate.now();
-                    Short classId = null;
-                    LocalDate date = null;
+                    Short classId = data.getKlasseId();
+                    LocalDate date = now;
 
                     if (data.getServer() == null && data.getSchool() == null) {
                         channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
                         return;
                     }
 
-                    if (args.length == 0) {
-                        classId = data.getKlasseId();
-                        date = now;
-                    } else {
+                    if (args.length != 0) {
                         for (String arg : args) {
-                            if (date == null) {
+                            if (date.equals(now)) {
                                 Integer number = null;
                                 try {
                                     number = Integer.parseInt(arg);
                                 } catch (NumberFormatException ignore) {
                                 }
-                                if (number != null && number <= 31 && number >= 1) {
+                                if (number != null && number > 1 && number < 31) {
                                     date = LocalDate.of(now.getYear(), now.getMonth(), number);
                                     continue;
                                 } else if (arg.contains(".")) {
@@ -142,14 +140,15 @@ public class DiscordCommandListener extends ListenerAdapter {
                                     }
                                 }
                             }
-                            System.out.println("sss");
                             try {
                                 classId = (short) session.getKlassen().findByName(arg).getId();
                             } catch (IOException e) {
                                 logger.warn(guildId + " ran into an exception while trying to receive classes for a timetable", e);
                                 channel.sendMessage("Couldn't search the class. Try again (later) or contact my author <@650417934073593886>, if the problem won't go away").queue();
+                                return;
                             } catch (NullPointerException e) {
                                 channel.sendMessage("Couldn't find any class with the name '" + arg + "'").queue();
+                                return;
                             }
                         }
                     }
@@ -172,78 +171,67 @@ public class DiscordCommandListener extends ListenerAdapter {
                         put("date", finalDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                     }}));
 
+                    LinkedHashMap<LocalTime, ArrayList<Timetable.Lesson>> lessons = new LinkedHashMap<>();
+                    boolean noMultiples = true;
                     LocalTime lastStartTime = LocalTime.MIN;
-                    boolean multipleLessonAtOnce = false;
-                    TreeMap<LocalTime, ArrayList<Timetable.Lesson>> lessons = new TreeMap<>();
                     try {
                         for (Timetable.Lesson lesson : Timetable.sortByStartTime(allUntisSessions.get(guildId).getTimetableFromKlasseId(date, date, classId))) {
                             lessons.putIfAbsent(lesson.getStartTime(), new ArrayList<>());
                             lessons.get(lesson.getStartTime()).add(lesson);
-                            if (lastStartTime.equals(lesson.getStartTime())) {
-                                multipleLessonAtOnce = true;
-                            }
+                            if (lastStartTime.equals(lesson.getStartTime())) noMultiples = false;
                             lastStartTime = lesson.getStartTime();
                         }
-                        if (multipleLessonAtOnce) {
-                            for (ArrayList<Timetable.Lesson> listLessons: lessons.values()) {
-                                for (Timetable.Lesson lesson: listLessons) {
-                                    embedBuilder.addField(Utils.advancedFormat(language.getString("timetable-lesson-title"), new HashMap<String, Object>() {{
-                                        put("lesson-number", lesson.getTimeUnitObject().getName());
-                                        put("start-time", lesson.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                        put("end-time", lesson.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                    }}), Utils.advancedFormat(language.getString("timetable-teachers"), new HashMap<String, Object>() {{
-                                        put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
-                                    }}) + "\n" + Utils.advancedFormat(language.getString("timetable-subjects"), new HashMap<String, Object>() {{
-                                        put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
-                                    }}) + "\n" + Utils.advancedFormat(language.getString("timetable-rooms"), new HashMap<String, Object>() {{
-                                        put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
-                                    }}), listLessons.size() > 1);
+                        for (int i = 0; i < lessons.size(); i++) {
+                            ArrayList<Timetable.Lesson> listLessons = (ArrayList<Timetable.Lesson>) lessons.values().toArray()[i];
+                            for (Timetable.Lesson lesson: (ArrayList<Timetable.Lesson>) lessons.values().toArray()[i]) {
+                                String additional = "";
+                                if (lesson.getCode() == UntisUtils.LessonCode.CANCELLED) {
+                                    additional = "~~";
                                 }
-                            }
-                        } else {
-                            /*int halfSize = (int) Math.ceil((lessons.values().size() / 2));
-                            for (int i = 0; i <= halfSize; i++) {
-                                int j = i + 1;
-                                Timetable.Lesson lesson = ((ArrayList<Timetable.Lesson>) lessons.values().toArray()[i]).get(0);
-                                Timetable.Lesson[] leftRightLessons;
-
-                                if (j + halfSize > lessons.values().size() - 1) {
-                                    leftRightLessons = new Timetable.Lesson[]{lesson};
-                                } else {
-                                    leftRightLessons = new Timetable.Lesson[]{lesson, ((ArrayList<Timetable.Lesson>) lessons.values().toArray()[j + halfSize]).get(0)};
-                                }
-
-                                for (Timetable.Lesson lesson1: leftRightLessons) {
-                                    embedBuilder.addField(Utils.advancedFormat(language.getString("timetable-lesson-title"), new HashMap<String, Object>() {{
-                                        put("lesson-number", lesson1.getTimeUnitObject().getName());
-                                        put("start-time", lesson1.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                        put("end-time", lesson1.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                    }}), Utils.advancedFormat(language.getString("timetable-teachers"), new HashMap<String, Object>() {{
-                                        put("teachers", String.join(", ", lesson1.getTeachers().getFullNames()));
-                                    }}) + "\n" + Utils.advancedFormat(language.getString("timetable-subjects"), new HashMap<String, Object>() {{
-                                        put("subjects", String.join(", ", lesson1.getSubjects().getLongNames()));
-                                    }}) + "\n" + Utils.advancedFormat(language.getString("timetable-rooms"), new HashMap<String, Object>() {{
-                                        put("rooms", String.join(", ", lesson1.getRooms().getLongNames()));
-                                    }}), true);
-                                }
-
-                                embedBuilder.addBlankField(true);
-                            }*/
-                            for (ArrayList<Timetable.Lesson> listLesson: lessons.values()) {
-                                Timetable.Lesson lesson = listLesson.get(0);
-                                embedBuilder.addField(Utils.advancedFormat(language.getString("timetable-lesson-title"), new HashMap<String, Object>() {{
+                                embedBuilder.addField(additional + Utils.advancedFormat(language.getString("timetable-lesson-title"), new HashMap<String, Object>() {{
                                     put("lesson-number", lesson.getTimeUnitObject().getName());
                                     put("start-time", lesson.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
                                     put("end-time", lesson.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                                }}), Utils.advancedFormat(language.getString("timetable-teachers"), new HashMap<String, Object>() {{
+                                }}) + additional, additional + Utils.advancedFormat(language.getString("timetable-teachers"), new HashMap<String, Object>() {{
                                     put("teachers", String.join(", ", lesson.getTeachers().getFullNames()));
                                 }}) + "\n" + Utils.advancedFormat(language.getString("timetable-subjects"), new HashMap<String, Object>() {{
                                     put("subjects", String.join(", ", lesson.getSubjects().getLongNames()));
                                 }}) + "\n" + Utils.advancedFormat(language.getString("timetable-rooms"), new HashMap<String, Object>() {{
                                     put("rooms", String.join(", ", lesson.getRooms().getLongNames()));
-                                }}), true);
+                                }}) + additional, noMultiples || listLessons.size() > 1);
+                            }
+                            if (listLessons.size() == 2 && i + 1 != lessons.size()) {
+                                embedBuilder.addBlankField(true);
                             }
                         }
+                        /*int halfSize = (int) Math.ceil((lessons.values().size() / 2));
+                        for (int i = 0; i <= halfSize; i++) {
+                            int j = i + 1;
+                            Timetable.Lesson lesson = ((ArrayList<Timetable.Lesson>) lessons.values().toArray()[i]).get(0);
+                            Timetable.Lesson[] leftRightLessons;
+
+                            if (j + halfSize > lessons.values().size() - 1) {
+                                leftRightLessons = new Timetable.Lesson[]{lesson};
+                            } else {
+                                leftRightLessons = new Timetable.Lesson[]{lesson, ((ArrayList<Timetable.Lesson>) lessons.values().toArray()[j + halfSize]).get(0)};
+                            }
+
+                            for (Timetable.Lesson lesson1: leftRightLessons) {
+                                embedBuilder.addField(Utils.advancedFormat(language.getString("timetable-lesson-title"), new HashMap<String, Object>() {{
+                                    put("lesson-number", lesson1.getTimeUnitObject().getName());
+                                    put("start-time", lesson1.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                    put("end-time", lesson1.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+                                }}), Utils.advancedFormat(language.getString("timetable-teachers"), new HashMap<String, Object>() {{
+                                    put("teachers", String.join(", ", lesson1.getTeachers().getFullNames()));
+                                }}) + "\n" + Utils.advancedFormat(language.getString("timetable-subjects"), new HashMap<String, Object>() {{
+                                    put("subjects", String.join(", ", lesson1.getSubjects().getLongNames()));
+                                }}) + "\n" + Utils.advancedFormat(language.getString("timetable-rooms"), new HashMap<String, Object>() {{
+                                    put("rooms", String.join(", ", lesson1.getRooms().getLongNames()));
+                                }}), true);
+                            }
+
+                            embedBuilder.addBlankField(true);
+                        }*/
                         channel.sendMessage(embedBuilder.build()).queue();
                     } catch (IOException e) {
                         logger.warn(guildId + " ran into an exception while trying to receive a timetable", e);
@@ -258,11 +246,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     Data.Stats stats = statsDataConnector.get(guildId);
 
                     EmbedBuilder embedBuilder = new EmbedBuilder();
-                    if (guildName.trim().endsWith("s")) {
-                        embedBuilder.setTitle(guild.getName() + " untis status");
-                    } else {
-                        embedBuilder.setTitle(guild.getName() + "'s untis status");
-                    }
+                    if (guildName.trim().endsWith("s")) embedBuilder.setTitle(guild.getName() + " untis status");
+                    else embedBuilder.setTitle(guild.getName() + "'s untis status");
 
                     ArrayList<String> mostMissedTeachers = new ArrayList<>();
                     short missedLessons = 0;
@@ -283,17 +268,29 @@ public class DiscordCommandListener extends ListenerAdapter {
                     }
 
                     String timetableChecking;
+                    String dataSet;
                     if (data.isCheckActive()) {
                         timetableChecking = "\uD83D\uDFE2 Active";
                         embedBuilder.setColor(Color.GREEN);
                     } else {
                         timetableChecking = "\uD83D\uDD34 Inactive";
-                        embedBuilder.setFooter("To start timetable checking, type `" + data.getPrefix() + "set-data <username> <password> <loginpage url>` - type `" + data.getPrefix() + "help` for more details");
                         embedBuilder.setColor(Color.RED);
                     }
+                    if (data.getUsername() != null && data.getServer() != null && data.getSchool() != null) {
+                        dataSet = "✅ Set";
+                        if (!data.isCheckActive()) {
+                            embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` - use `" + data.getPrefix() + "help start` for more details");
+                        }
+                    }
+                    else {
+                        dataSet = "❌ Not set";
+                        embedBuilder.setFooter("To set your data, type `" + data.getPrefix() + "set-data <username> <password> <loginpage url>` - use `" + data.getPrefix() + "help data` for more details");
+                    }
+
                     embedBuilder.addField("Timetable checking", timetableChecking, true);
+                    embedBuilder.addField("Data status", dataSet, true);
                     //embedBuilder.addField("Checking interval", data.getSleepTime() / 60000 + " minutes", true);
-                    embedBuilder.addField("Total timetable requests", String.valueOf(stats.getTotalRequests()), true);
+                    //embedBuilder.addField("Total timetable requests", String.valueOf(stats.getTotalRequests()), true);
                     embedBuilder.addField("Total lessons checked", String.valueOf(stats.getTotalLessons()), true);
                     embedBuilder.addField("Total weeks checked", String.valueOf((int) (Math.floor((float) stats.getTotalDays() / 7))), true);
                     embedBuilder.addField("Total cancelled lessons", String.valueOf(stats.getTotalCancelledLessons()), true);
@@ -441,6 +438,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         if (data.isCheckActive()) {
                             channel.sendMessage("Timetable listening already started").queue();
                         } else {
+                            guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, true, null);
                             runTimetableChecker(guild);
                             logger.info(guildName + " started timetable listening");
                             channel.sendMessage("✅ Timetable listening has been started").queue();
@@ -452,6 +450,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                 case "stop": // `stop` command
                     if (args.length == 0) {
                         if (data.isCheckActive()) {
+                            guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, false, null);
                             Timer timer = allTimetableChecker.get(guildId);
                             allTimetableChecker.remove(guildId);
                             timer.cancel();
@@ -465,7 +464,9 @@ public class DiscordCommandListener extends ListenerAdapter {
                         channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help stop` for help").queue();
                     }
                     break;
-                case "help": // is handled in DiscordCommandListener.onMessageReceived()
+                case "help":
+                case "info":
+                case "infos": // is handled in DiscordCommandListener.onMessageReceived()
                     return;
                 default:
                     channel.sendMessage("Unknown command").queue();
@@ -542,6 +543,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                 } catch (ArrayIndexOutOfBoundsException e) {
                     i++;
                     daysToCheck++;
+                } catch (NullPointerException e) {
+                    i++;
                 }
 
                 for (; i <= daysToCheck; i++) {
@@ -756,111 +759,150 @@ public class DiscordCommandListener extends ListenerAdapter {
             String message = event.getMessage().getContentDisplay().trim().toLowerCase();
             MessageChannel channel = event.getChannel();
 
-            String prefix;
-            if (message.contains("help")) { // `help` command
-                if (event.isFromGuild()) {
-                    prefix = guildDataConnector.get(event.getGuild().getIdLong()).getPrefix();
-                    if (!event.getMessage().getContentDisplay().startsWith(prefix + "help")) {
-                        System.out.println("sss");
-                        return;
+            String[] commands = new String[]{"help", "info"};
+
+            String prefix = null;
+            String command = "";
+            String[] args = null;
+
+            for (String cmd: commands) {
+                if (message.contains(cmd)) {
+                    if (event.isFromGuild()) {
+                        prefix = guildDataConnector.get(event.getGuild().getIdLong()).getPrefix();
+                        if (!event.getMessage().getContentDisplay().startsWith(prefix + cmd)) {
+                            return;
+                        }
+                    } else if (message.equals(cmd) || message.startsWith(cmd + " ")) {
+                        prefix = "";
+                    } else {
+                        continue;
                     }
-                } else if (message.equals("help") || message.startsWith("help ")) {
-                    prefix = "";
-                } else {
-                    return;
+                    command = cmd;
+                    String[] splitMessage = message.substring(prefix.length()).split(" ");
+                    args = Arrays.copyOfRange(splitMessage, 1, splitMessage.length);
+                    break;
                 }
-            } else {
-                return;
             }
 
-            String[] splitMessage = message.substring(prefix.length()).split(" ");
-            String[] args = Arrays.copyOfRange(splitMessage, 1, splitMessage.length);
-            String help = "Use `" + prefix + "help <command>` to get help / information about a command.\n\n" +
-                    "All available commands are:\n" +
-                    "`channel` `clear` `data` `help` `language` `prefix` `stats` `start` `stop` `timetable`";
-            if (args.length > 1) {
-                channel.sendMessage("Wrong number of arguments are given (expected 0 or 1, got " + splitMessage.length + "). " + help).queue();
-            } else if (args.length == 0) {
-                channel.sendMessage(help).queue();
-            } else {
-                String title;
-                String description;
-                String example;
-                String default_ = null;
-                switch (args[0]) {
-                    case "channel":
-                        title = "`channel` command";
-                        description = "In the channel where this command is entered, the bot shows the timetable changes";
-                        example = "`channel`";
-                        break;
-                    case "clear":
-                        title = "`clear` command";
-                        description = "Clears the given untis data, given from the `data` command";
-                        example = "`clear`";
-                        break;
-                    case "data":
-                        title = "`data <username> <password> <login page url>` command";
-                        description = "Sets the data with which the bot logs in to untis and checks for timetable changes. The data is stored encrypted on the server.\n" +
-                                "`username` and `password` are the normal untis login data with which one also logs in to the untis website / app. To gain the login page url you have to go to webuntis.com, type in your school and choose it.\n" +
-                                "Then you will be redirected to the untis login page, The url of this page is the login page url, for example `https://example.webuntis.com/WebUntis/?school=myschool#/basic/main`.\n" +
-                                "`class name` is just the name of the class you want to check (eg. `12AB`). If `class name` is not specified, the bot tries to get the default class which is assigned to the given account.";
-                        example = "`data myname secure https://example.webuntis.com/WebUntis/?school=example#/basic/main 12AB`";
-                        default_ = "`en`";
-                        break;
-                    case "help":
-                        title = "`help <command>` command";
-                        description = "Displays help to a given command";
-                        example = "`help data`";
-                        break;
-                    case "language":
-                        title = "`language <language>` command";
-                        description = "Changes the language in which the timetable information are displayed. Currently only 'de' (german) and 'en' (english) are supported";
-                        example = "`language de`";
-                        default_ = "`en`";
-                        break;
-                    case "prefix":
-                        title = "`prefix <new prefix>` command";
-                        description = "Changes the prefix with which commands are called";
-                        example = "`prefix $`";
-                        default_ = "`!untis `";
-                        break;
-                    case "stats":
-                        title = "`stats` command";
-                        description = "Displays a message with some stats (total cancelled lessons, etc.)";
-                        example = "`stats`";
-                        break;
-                    case "start":
-                        title = "`start` command";
-                        description = "Starts the stopped timetable listener. Only works if data was set with the `data` command";
-                        example = "`start`";
-                        break;
-                    case "stop":
-                        title = "`stop` command";
-                        description = "Stops timetable listening. Only works if data was set with the `data` command";
-                        example = "`stop`";
-                        break;
-                    case "timetable":
-                        title = "`timetable [date] [class name]` command";
-                        description = "Displays the timetable for a specific date. As `date` you can use 3 formats." +
-                                "1: Only the day (`12`); 2. Day and month (`13.04`); 3. Day, month and year (`31.12.2020`)." +
-                                "Only works if data was set with the `data` command. If no date is given, the timetable for the current date is displayed." +
-                                "As `class name` you can use any class from your school. If class is not given, the class which was assigned in the `data` command is used";
-                        example = "`timetable 11.11`";
-                        break;
-                    default:
-                        channel.sendMessage("Unknown command was given. " + help).queue();
-                        return;
-                }
-                EmbedBuilder embedBuilder = new EmbedBuilder();
-                embedBuilder.setColor(Color.CYAN);
-                embedBuilder.setTitle(title);
-                embedBuilder.addField("Description", description, false);
-                embedBuilder.addField("Example", example, false);
-                if (default_ != null) {
-                    embedBuilder.addField("Default", default_, false);
-                }
-                embedBuilder.setFooter("`<>` = required; `[]` = optional");
-                channel.sendMessage(embedBuilder.build()).queue();
+            switch (command) {
+                case "help": // `help [command] command`
+                    if (args.length < 2) {
+                        String help = "Use `" + prefix + "help <command>` to get help / information about a command.\n\n" +
+                                "All available commands are:\n" +
+                                "`channel` • `clear` • `data` • `info` • `help` • `language` • `prefix` • `stats` • `start` • `stop` • `timetable`";
+                        if (args.length == 0) {
+                            channel.sendMessage(help).queue();
+                        } else {
+                            String title;
+                            String description;
+                            String example;
+                            String default_ = null;
+                            switch (args[0]) {
+                                case "channel":
+                                    title = "`channel` command";
+                                    description = "In the channel where this command is entered, the bot shows the timetable changes";
+                                    example = "`channel`";
+                                    break;
+                                case "clear":
+                                    title = "`clear` command";
+                                    description = "Clears the given untis data, given from the `data` command";
+                                    example = "`clear`";
+                                    break;
+                                case "data":
+                                    title = "`data <username> <password> <login page url>` command";
+                                    description = "Sets the data with which the bot logs in to untis and checks for timetable changes. The data is stored encrypted on the server.\n" +
+                                            "`username` and `password` are the normal untis login data with which one also logs in to the untis website / app. To gain the login page url you have to go to webuntis.com, type in your school and choose it.\n" +
+                                            "Then you will be redirected to the untis login page, The url of this page is the login page url, for example `https://example.webuntis.com/WebUntis/?school=myschool#/basic/main`.\n" +
+                                            "`class name` is just the name of the class you want to check (eg. `12AB`). If `class name` is not specified, the bot tries to get the default class which is assigned to the given account.";
+                                    example = "`data myname secure https://example.webuntis.com/WebUntis/?school=example#/basic/main 12AB`";
+                                    default_ = "`en`";
+                                    break;
+                                case "info":
+                                    title = "`info` command";
+                                    description = "Displays information about the bot";
+                                    example = "`info`";
+                                    break;
+                                case "help":
+                                    title = "`help <command>` command";
+                                    description = "Displays help to a given command";
+                                    example = "`help data`";
+                                    break;
+                                case "language":
+                                    title = "`language <language>` command";
+                                    description = "Changes the language in which the timetable information are displayed. Currently only 'de' (german) and 'en' (english) are supported";
+                                    example = "`language de`";
+                                    default_ = "`en`";
+                                    break;
+                                case "prefix":
+                                    title = "`prefix <new prefix>` command";
+                                    description = "Changes the prefix with which commands are called";
+                                    example = "`prefix $`";
+                                    default_ = "`!untis `";
+                                    break;
+                                case "stats":
+                                    title = "`stats` command";
+                                    description = "Displays a message with some stats (total cancelled lessons, etc.)";
+                                    example = "`stats`";
+                                    break;
+                                case "start":
+                                    title = "`start` command";
+                                    description = "Starts the stopped timetable listener. Only works if data was set with the `data` command";
+                                    example = "`start`";
+                                    break;
+                                case "stop":
+                                    title = "`stop` command";
+                                    description = "Stops timetable listening. Only works if data was set with the `data` command";
+                                    example = "`stop`";
+                                    break;
+                                case "timetable":
+                                    title = "`timetable [date] [class name]` command";
+                                    description = "Displays the timetable for a specific date. As `date` you can use 3 formats." +
+                                            "1: Only the day (`12`); 2. Day and month (`13.04`); 3. Day, month and year (`31.12.2020`)." +
+                                            "Only works if data was set with the `data` command. If no date is given, the timetable for the current date is displayed." +
+                                            "As `class name` you can use any class from your school. If class is not given, the class which was assigned in the `data` command is used";
+                                    example = "`timetable 11.11`";
+                                    break;
+                                default:
+                                    channel.sendMessage("Unknown command was given. " + help).queue();
+                                    return;
+                            }
+                            EmbedBuilder embedBuilder = new EmbedBuilder();
+                            embedBuilder.setColor(Color.CYAN);
+                            embedBuilder.setTitle(title);
+                            embedBuilder.addField("Description", description, false);
+                            embedBuilder.addField("Example", example, false);
+                            if (default_ != null) {
+                                embedBuilder.addField("Default", default_, false);
+                            }
+                            embedBuilder.setFooter("`<>` = required; `[]` = optional");
+                            channel.sendMessage(embedBuilder.build()).queue();
+                        }
+                    } else {
+                        channel.sendMessage("Wrong number of arguments were given (expected 0 or 1, got " + args.length + "), type `" + prefix + "help help` for help").queue();
+                    }
+                    break;
+                case "info":
+                    if (args.length == 0) {
+                        EmbedBuilder infoBuilder = new EmbedBuilder();
+                        infoBuilder.setTitle("Untis information");
+                        infoBuilder.setThumbnail("https://cdn.discordapp.com/avatars/768841979433451520/2742868bb029952ee00514a01f84b65b.webp?size=512");
+                        infoBuilder.setDescription("<@768841979433451520> is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) " +
+                                "timetable software to receive the timetable for a specific date, " +
+                                "automatically send messages when the timetable from a given account or class changes, " +
+                                "displays total cancelled lessons etc., and more!");
+                        infoBuilder.setColor(new Color(255, 165, 0));
+                        infoBuilder.addField("\uD83D\uDCDDAuthor", "[<@650417934073593886>](https://discordapp.com/users/650417934073593886)", true);
+                        infoBuilder.addField("✨Version", "[v1.1](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1)", true);
+                        infoBuilder.addField("❓Help", "`" + prefix + "help`", true);
+                        infoBuilder.addField("❤️️Source / GitHub", "[Source code!](https://github.com/ByteDream/untisbot-discord)", true);
+                        //infoBuilder.addField("Total guilds (server)", String.valueOf(guildDataConnector.getAll().size()), true);
+                        infoBuilder.addField("\uD83D\uDCC8Vote", "[Vote!](https://top.gg/bot/768841979433451520/vote)", true);
+                        infoBuilder.addField("\uD83D\uDD10️Data encryption algorithm", "[AES-256](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)", true);
+                        channel.sendMessage(infoBuilder.build()).queue();
+                    } else {
+                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + prefix + "help info` for help").queue();
+                    }
+                    break;
             }
         });
         t.setName("Message handler");
