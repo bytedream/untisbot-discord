@@ -74,16 +74,18 @@ public class DiscordCommandListener extends ListenerAdapter {
         statsDataConnector = dataConnector.statsConnector();
         this.languages = languages;
 
-        new Timer().scheduleAtFixedRate(new TimerTask() { // just execute this so that the connect won't have a timeout
-            @Override
-            public void run() {
-                Thread.currentThread().setName("Anti sql timeout");
-                try {
-                    Main.getConnection().createStatement().execute("SELECT * FROM Guilds WHERE GUILDID = 0");
-                } catch (SQLException ignore) {
+        if (storeType == StoreType.MARIADB) {
+            new Timer().scheduleAtFixedRate(new TimerTask() { // just execute this so that the connect won't have a timeout
+                @Override
+                public void run() {
+                    Thread.currentThread().setName("Anti sql timeout");
+                    try {
+                        Main.getConnection().createStatement().execute("SELECT * FROM Guilds WHERE GUILDID = 0");
+                    } catch (SQLException ignore) {
+                    }
                 }
-            }
-        }, 0, TimeUnit.HOURS.toMillis(1));
+            }, 0, TimeUnit.HOURS.toMillis(1));
+        }
     }
 
     /**
