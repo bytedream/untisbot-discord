@@ -72,7 +72,7 @@ public class Data {
         }
 
         public Short getKlasseId() {
-            return (short) data[6];
+            return (Short) data[6];
         }
 
         public Long getChannelId() {
