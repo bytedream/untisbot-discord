@@ -719,6 +719,13 @@ public class DiscordCommandListener extends ListenerAdapter {
                 } catch (IOException e) {
                     logger.info("Running main through IOException", e);
                     main();
+                } catch (Exception e) {
+                    try {
+                        logger.info("Try to run main through unexpected exception", e);
+                        main();
+                    } catch (Exception ex) {
+                        logger.warn("Couldn't run main through unexpected exception", ex);
+                    }
                 }
             }
         }, 0, data.getSleepTime());
@@ -926,14 +933,15 @@ public class DiscordCommandListener extends ListenerAdapter {
                 statsDataConnector.add(guildId);
             }
 
+            Data.Guild data = guildDataConnector.get(guildId);
+            try {
+                allUntisSessions.put(guildId, Session.login(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool()));
+            } catch (IOException e) {
+                logger.error("Error for guild " + guild.getName() + " (" + guildId + ") while setting up untis session", e);
+                continue;
+            }
             if (guildDataConnector.get(guildId).isCheckActive()) {
-                Data.Guild data = guildDataConnector.get(guildId);
-                try {
-                    allUntisSessions.put(guildId, Session.login(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool()));
-                    runTimetableChecker(guild);
-                } catch (IOException e) {
-                    logger.error("Error for guild " + guild.getName() + " (" + guildId + ") while setting up untis session", e);
-                }
+                runTimetableChecker(guild);
             }
 
             allGuilds.add(guildId);
