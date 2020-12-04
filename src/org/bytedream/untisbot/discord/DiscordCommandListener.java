@@ -39,6 +39,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Adapter to handle all events
@@ -73,8 +74,16 @@ public class DiscordCommandListener extends ListenerAdapter {
         statsDataConnector = dataConnector.statsConnector();
         this.languages = languages;
 
-        EmbedBuilder embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(Color.GREEN);
+        new Timer().scheduleAtFixedRate(new TimerTask() { // just execute this so that the connect won't have a timeout
+            @Override
+            public void run() {
+                Thread.currentThread().setName("Anti sql timeout");
+                try {
+                    Main.getConnection().createStatement().execute("SELECT * FROM Guilds WHERE GUILDID = 0");
+                } catch (SQLException ignore) {
+                }
+            }
+        }, 0, TimeUnit.HOURS.toMillis(1));
     }
 
     /**
@@ -161,9 +170,12 @@ public class DiscordCommandListener extends ListenerAdapter {
                         language = languages.getJSONObject(data.getLanguage());
                     }
                     String className = "-";
+
                     try {
-                        className = session.getKlassen().findById(data.getKlasseId()).getName();
+                        session.reconnect();
+                        className = session.getKlassen().findById(classId).getName();
                     } catch (IOException ignore) {}
+
                     String finalClassName = className; // yea java...
                     LocalDate finalDate = date; // yea java part two...
                     embedBuilder.setTitle(Utils.advancedFormat(language.getString("timetable-title"), new HashMap<String, Object>() {{
@@ -279,7 +291,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     if (data.getUsername() != null && data.getServer() != null && data.getSchool() != null) {
                         dataSet = "✅ Set";
                         if (!data.isCheckActive()) {
-                            embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` - use `" + data.getPrefix() + "help start` for more details");
+                            embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` to re-enable it - use `" + data.getPrefix() + "help start` for more details");
                         }
                     }
                     else {
@@ -430,7 +442,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("Updated prefix to `" + prefix + "`" + note).queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 3, got " + args.length + "), type `" + data.getPrefix() + "help prefix` for help").queue();
+                        channel.sendMessage("Wrong number of arguments were given (expected 1, got " + args.length + "), type `" + data.getPrefix() + "help prefix` for help").queue();
                     }
                     break;
                 case "start": // `start` command
@@ -440,7 +452,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                         } else {
                             guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, true, null);
                             runTimetableChecker(guild);
-                            logger.info(guildName + " started timetable listening");
                             channel.sendMessage("✅ Timetable listening has been started").queue();
                         }
                     } else {
@@ -550,6 +561,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                 for (; i <= daysToCheck; i++) {
                     LocalDate localDate = now.plusDays(i);
                     try {
+                        LocalDate lastChecked = guildDataConnector.get(guildId).getLastChecked();
                         CheckCallback checkCallback = timetableChecker.check(localDate);
 
                         ArrayList<Timetable.Lesson> cancelledLessons = checkCallback.getCancelled();
@@ -636,14 +648,11 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 textChannel.sendMessage(embedBuilder.build()).queue();
                             }
 
-                            LocalDate lastChecked = guildDataConnector.get(guildId).getLastChecked();
                             Short totalDays = stats.getTotalDays();
                             int totalLessons = stats.getTotalLessons();
-
                             if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
                                 totalDays++;
                                 totalLessons += checkCallback.getAllLessons().size();
-                                guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
                             }
                             short totalCancelledLessons = (short) (stats.getTotalCancelledLessons() + cancelledLessons.size() - notCancelledLessons.size());
                             short totalMovedLessons = (short) (stats.getTotalMovedLessons() + movedLessons.size() - notMovedLessons.size());
@@ -671,6 +680,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                             if (error) {
                                 error = false;
                             }
+                        } else if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
+                                guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
                         }
                     } catch (Exception e) {
                         logger.warn(guildName + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
@@ -704,12 +715,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                     if (latestImportTime < sessionLatestImportTime) {
                         latestImportTime = sessionLatestImportTime;
                         main();
-                    } else {
-                        try {
-                            Main.getConnection().createStatement().execute("SELECT * FROM Guilds WHERE GUILDID = 0");
-                            // just execute this so that the connect won't have a timeout
-                        } catch (SQLException ignore) {
-                        }
                     }
                 } catch (IOException e) {
                     logger.info("Running main through IOException", e);
