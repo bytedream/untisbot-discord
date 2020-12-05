@@ -290,7 +290,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         timetableChecking = "\uD83D\uDD34 Inactive";
                         embedBuilder.setColor(Color.RED);
                     }
-                    if (data.getUsername() != null && data.getServer() != null && data.getSchool() != null) {
+                    if (data.getServer() != null && data.getSchool() != null) {
                         dataSet = "✅ Set";
                         if (!data.isCheckActive()) {
                             embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` to re-enable it - use `" + data.getPrefix() + "help start` for more details");
@@ -384,7 +384,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 guildDataConnector.update(guildId, null, args[0], args[1], server, schoolName, klasseId, null, null, null, true, null);
                             }
 
-                            if (data.isCheckActive()) {
+                            if (data.isCheckActive() && allTimetableChecker.containsKey(guildId)) {
                                 Timer timer = allTimetableChecker.get(guildId);
                                 allTimetableChecker.remove(guildId);
                                 timer.cancel();
@@ -935,11 +935,13 @@ public class DiscordCommandListener extends ListenerAdapter {
             }
 
             Data.Guild data = guildDataConnector.get(guildId);
-            try {
-                allUntisSessions.put(guildId, Session.login(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool()));
-            } catch (IOException e) {
-                logger.error("Error for guild " + guild.getName() + " (" + guildId + ") while setting up untis session", e);
-                continue;
+            if (data.getUsername() != null && data.getServer() != null && data.getSchool() != null) {
+                try {
+                    allUntisSessions.put(guildId, Session.login(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool()));
+                } catch (IOException e) {
+                    logger.error("Error for guild " + guild.getName() + " (" + guildId + ") while setting up untis session", e);
+                    continue;
+                }
             }
             if (guildDataConnector.get(guildId).isCheckActive()) {
                 runTimetableChecker(guild);
