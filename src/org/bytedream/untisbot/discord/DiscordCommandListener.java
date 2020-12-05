@@ -290,7 +290,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         timetableChecking = "\uD83D\uDD34 Inactive";
                         embedBuilder.setColor(Color.RED);
                     }
-                    if (data.getServer() != null && data.getSchool() != null) {
+                    if (data.getServer() != null && !data.getServer().equals("") && data.getSchool() != null && !data.getSchool().equals("")) {
                         dataSet = "✅ Set";
                         if (!data.isCheckActive()) {
                             embedBuilder.setFooter("The timetable checker is deactivated. Type `" + data.getPrefix() + "start` to re-enable it - use `" + data.getPrefix() + "help start` for more details");
@@ -333,7 +333,9 @@ public class DiscordCommandListener extends ListenerAdapter {
                     if (args.length == 0) {
                         guildDataConnector.update(guild.getIdLong(), null, "", "", "", "", (short) 0, null, null, null, false, null);
                         logger.info(guildName + " cleared their data");
-                        channel.sendMessage("Cleared untis data and stopped timetable listening").queue();
+                        allUntisSessions.remove(guildId);
+                        allTimetableChecker.remove(guildId);
+                        channel.sendMessage("Cleared untis data and stopped timetable listening if active").queue();
                     } else {
                         channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help clear` for help").queue();
                     }
@@ -392,7 +394,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 runTimetableChecker(guild);
                                 channel.sendMessage("✅ Updated data and restarted timetable listening for class " + className).queue();
                             } else if (data.getLastChecked() != null) {
-                                channel.sendMessage("✅ Updated data. Timetable listening were manually stopped a while ago. To re-enable it, type `" + data.getPrefix() + "start`").queue();
+                                channel.sendMessage("✅ Updated data. Timetable listening were stopped a while ago. To re-enable it, type `" + data.getPrefix() + "start`").queue();
                             } else {
                                 runTimetableChecker(guild);
                                 channel.sendMessage("✅ Timetable listening has been started for class " + className).queue();

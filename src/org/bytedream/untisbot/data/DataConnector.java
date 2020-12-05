@@ -192,7 +192,7 @@ public class DataConnector {
             args.put("LANGUAGE", language);
             if (username != null) {
                 if (username.isEmpty()) {
-                    args.put("USERNAME", "NULL");
+                    args.put("USERNAME", "");
                 } else {
                     try {
                         args.put("USERNAME", crypt.encrypt(username));
@@ -205,12 +205,12 @@ public class DataConnector {
             }
             if (password != null) {
                 if (password.isEmpty()) {
-                    args.put("PASSWORD", "NULL");
+                    args.put("PASSWORD", "");
                 } else {
                     try {
                         args.put("PASSWORD", crypt.encrypt(password));
                     } catch (GeneralSecurityException ignore) {
-                        args.put("PASSWORD", null);
+                        args.put("PASSWORD", "");
                     }
                 }
             } else {
@@ -218,7 +218,7 @@ public class DataConnector {
             }
             if (server != null) {
                 if (server.isEmpty()) {
-                    args.put("SERVER", "NULL");
+                    args.put("SERVER", "");
                 } else {
                     args.put("SERVER", server);
                 }
@@ -227,7 +227,7 @@ public class DataConnector {
             }
             if (school != null) {
                 if (school.isEmpty()) {
-                    args.put("SCHOOL", "NULL");
+                    args.put("SCHOOL", "");
                 } else {
                     args.put("SCHOOL", school);
                 }
