@@ -1,6 +1,7 @@
 ### UntisBot
 
-**UntisBot** is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) timetable software / api to automatically sends messages when the timetable from a given account or class changes.
+**UntisBot** is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) timetable software / api
+to receive the timetable for a specific date, automatically send messages when the timetable from a given account or class changes, displays absent teachers, and more!
 You can invite the bot right [here](https://discord.com/api/oauth2/authorize?client_id=768841979433451520&permissions=268437504&scope=bot) or [host it yourself](#Self-hosting).
 
 <p align="center">
@@ -23,15 +24,19 @@ To see all available commands and get infos about it, simply type `help`.
 
 | command | usage | example | default |
 | --- | --- | --- | --- |
-| `channel` | In the channel where this command is entered, the bot shows the timetable changes | `channel` | -
-| `clear` | Clears the given untis data, given from the `data` command | `clear` | -
-| `data <username> <password> <login page url> [class name]` | Sets the data with which the bot logs in to untis and checks for timetable changes. The data is stored encrypted on the server. `username` and `password` are the normal untis login data with which one also logs in to the untis website / app. To gain the login page url you have to go to webuntis.com, type in your school and choose it. Then you will be redirected to the untis login page, The url of this page is the login page url, for example `https://example.webuntis.com/WebUntis/?school=myschool#/basic/main`. `class name` is just the name of the class you want to check (eg. `12AB`). If `class name` is not specified, the bot tries to get the default class which is assigned to the given account. | `data myname secure https://example.webuntis.com/WebUntis/?school=example#/basic/main 12AB` | - |
-| `help` | Displays help to a given command | `help data` | - |
+| `channel` | In the channel where this command is entered, the bot shows the timetable changes | `channel` | - |
+| `clear` | Clears the given untis data, given from the `data` command | `clear` | - |
+| `data <username> <password> <login page url> [class name]` | Sets the data with which the bot logs in to untis and checks for timetable changes. The data is stored encrypted on the server. `username` and `password` are the normal untis login data with which one also logs in to the untis website / app. To gain the login page url you have to go to webuntis.com, type in your school and choose it. Then you will be redirected to the untis login page, The url of this page is the login page url, for example `https://example.webuntis.com/WebUntis/?school=myschool#/basic/main`. `class name` is just the name of the class you want to check (eg. `12AB`). As `class name` you can use any class from your school. If it isn't specified, the bot tries to get the default class which is assigned to the given account. | `data myname secure https://example.webuntis.com/WebUntis/?school=example#/basic/main 12AB` | - |
+| `info` | Displays information about the bot | `info` | - |
+| `help [command]` | Displays help to a given command | `help data` | - |
 | `language <language>` | Changes the language in which the timetable information are displayed. Currently only `de` (german) and `en` (english) are supported | `language de` | `en` |
 | `prefix <new prefix>` | Changes the prefix with which commands are called | `prefix $` | `!untis ` |
 | `stats` | Displays a message with some stats (total cancelled lessons, etc.) | `stats` | - |
+| `start` | Starts the stopped timetable listener. Only works if data was set with the `data` command | `start` | - |
+| `stop` | Stops timetable listening. Only works if data was set with the `data` command | `stop` | - |
+| `timetable [date] [class name]` | Displays the timetable for a specific date. As `date` you can use 3 formats. 1: Only the day (`12`); 2. Day and month (`13.04`); 3. Day, month and year (`31.12.2020`). Only works if data was set with the `data` command. If no date is given, the timetable for the current date is displayed. As `class name` you can use any class from your school. If class is not given, the class which was assigned in the `data` command is used | `timetable 11.11` | - |
 
-Note: All commands except for `help <command>` and `<stats>` can only be executed by a member with admin rights.
+Note: All commands except for `help [command]`, `timetable [] [class]` and `<stats>` can only be executed by a member with admin rights.
 
 ## Self-hosting
 
@@ -62,7 +67,7 @@ When you run the bot manually you can choose from 2 types of data storage:
  
 ### In-memory storage
 
-In memory data storage is pretty simple: Just download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar token=<your discord bot token>`.
+In memory data storage is pretty simple: Just download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar token=<your discord bot token>`.
 The simple things have unfortunately also often disadvantages: The user data is only stored as long as the bot is running. If you shut it down, all data will be lost.
 If you want to keep the data even after a shutdown, you should use [database storage](#MariaDB).
 
@@ -79,7 +84,7 @@ To set up the database, you have to execute the following command and replace `<
 mysql -u <user> -p -e "CREATE DATABASE Untis; USE Untis; $(wget -qO- https://raw.githubusercontent.com/ByteDream/untisbot-discord/master/files/database.sql)"
 ```
 
-Now you have set up the database and are ready to go. Download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar <your discord bot token> mariadb`.
+Now you have set up the database and are ready to go. Download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar <your discord bot token> mariadb`.
 
 ## Run options
 
@@ -166,7 +171,7 @@ If you want to add a language which isn't supported you can
 - [Database client](https://github.com/mariadb-corporation/mariadb-connector-j) (mariadb java client)
 - [Logger](https://github.com/qos-ch/logback) (logback-core and logback-classic)
 
-**_Note_: The [UntisBot jar file](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.0/UntisBot-1.0.jar) and the [Dockerfile](Dockerfile) are containing all dependencies.**
+**_Note_: The [UntisBot jar file](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and the [Dockerfile](Dockerfile) are containing all dependencies.**
 
 
 ## License

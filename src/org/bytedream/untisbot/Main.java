@@ -1,3 +1,8 @@
+/**
+ * @author ByteDream
+ * @version 1.1
+ */
+
 package org.bytedream.untisbot;
 
 import ch.qos.logback.classic.Logger;
@@ -20,6 +25,8 @@ import java.util.HashSet;
  * Main class
  */
 public class Main {
+
+    public static final String version = "1.1";
 
     private static Logger logger;
     private static Connection connection;

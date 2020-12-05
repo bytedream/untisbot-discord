@@ -50,7 +50,7 @@ public class Data {
         public String getUsername() {
             try {
                 return crypt.decrypt((String) (data[2]));
-            } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException ignore) {
+            } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException | NullPointerException ignore) {
                 return null;
             }
         }
@@ -58,7 +58,7 @@ public class Data {
         public String getPassword() {
             try {
                 return crypt.decrypt((String) (data[3]));
-            } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException ignore) {
+            } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException | NullPointerException ignore) {
                 return null;
             }
         }
@@ -72,7 +72,7 @@ public class Data {
         }
 
         public Short getKlasseId() {
-            return (short) data[6];
+            return (Short) data[6];
         }
 
         public Long getChannelId() {

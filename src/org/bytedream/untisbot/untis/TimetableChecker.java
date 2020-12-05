@@ -19,7 +19,7 @@ import java.util.HashSet;
 public class TimetableChecker {
 
     private final Session session;
-    private final int klasseId;
+    private final int classId;
     private final LocalDate[] cancelledLessonsDay = new LocalDate[7];
     private final LocalDate[] ignoredLessonsDay = new LocalDate[7];
     private final LocalDate[] movedLessonsDay = new LocalDate[7];
@@ -30,16 +30,13 @@ public class TimetableChecker {
     /**
      * Sets all necessary configurations and connects to the untis account with the given untis credentials
      *
-     * @param username   username of the untis account
-     * @param password   user password of the untis account
-     * @param server     the server from the school as URL
-     * @param schoolName name of the school
-     * @throws IOException if any {@link IOException} while the login occurs
+     * @param session user session
+     * @param classId id of the class to check the timetable
      * @since 1.0
      */
-    public TimetableChecker(String username, String password, String server, String schoolName, int klasseId) throws IOException {
-        session = Session.login(username, password, server, schoolName);
-        this.klasseId = klasseId;
+    public TimetableChecker(Session session, int classId) {
+        this.session = session;
+        this.classId = classId;
 
         for (LocalDate[] localDates : new HashSet<LocalDate[]>() {{
             add(cancelledLessonsDay);
@@ -65,7 +62,7 @@ public class TimetableChecker {
      * @since 1.0
      */
     public CheckCallback check(LocalDate dateToCheck) throws IOException {
-        Timetable timetable = session.getTimetableFromKlasseId(dateToCheck, dateToCheck, klasseId);
+        Timetable timetable = session.getTimetableFromKlasseId(dateToCheck, dateToCheck, classId);
         timetable.sortByStartTime();
 
         int dayOfWeekInArray = dateToCheck.getDayOfWeek().getValue() - 1;
