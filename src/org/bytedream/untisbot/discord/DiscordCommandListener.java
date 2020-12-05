@@ -906,7 +906,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 "automatically send messages when the timetable from a given account or class changes, " +
                                 "displays total cancelled lessons etc., and more!");
                         infoBuilder.setColor(new Color(255, 165, 0));
-                        infoBuilder.addField("\uD83D\uDCDDAuthor", "[<@650417934073593886>](https://discordapp.com/users/650417934073593886)", true);
+                        infoBuilder.addField("\uD83D\uDCDDAuthor", "<@650417934073593886>", true);
                         infoBuilder.addField("✨Version", "[v1.1](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1)", true);
                         infoBuilder.addField("❓Help", "`" + prefix + "help`", true);
                         infoBuilder.addField("❤️️Source / GitHub", "[Source code!](https://github.com/ByteDream/untisbot-discord)", true);
