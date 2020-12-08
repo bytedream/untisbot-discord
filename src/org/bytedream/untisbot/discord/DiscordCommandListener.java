@@ -154,7 +154,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 classId = (short) session.getKlassen().findByName(arg).getId();
                             } catch (IOException e) {
                                 logger.warn(guildId + " ran into an exception while trying to receive classes for a timetable", e);
-                                channel.sendMessage("Couldn't search the class. Try again (later) or contact my author <@650417934073593886>, if the problem won't go away").queue();
                                 return;
                             } catch (NullPointerException e) {
                                 channel.sendMessage("Couldn't find any class with the name '" + arg + "'").queue();
