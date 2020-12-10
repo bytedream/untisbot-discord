@@ -53,37 +53,39 @@ public class Discord {
      * @since 1.1
      */
     private void updateRichPresence() {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL("https://api.github.com/repos/ByteDream/untisbot-discord/releases/tags/v" + Main.version).openConnection();
-            connection.connect();
+        if (Main.version.replace(".", "").length() == Main.version.length() - 1) { // only gets executed on major updates
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URL("https://api.github.com/repos/ByteDream/untisbot-discord/releases/tags/v" + Main.version).openConnection();
+                connection.connect();
 
-            if (connection.getResponseCode() == 200) {
-                JSONTokener jsonTokener = new JSONTokener(new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)));
-                JSONObject releaseInfos = new JSONObject(jsonTokener);
-                String releaseTime = releaseInfos.getString("published_at");
-                LocalDateTime releaseDateTime = LocalDateTime.parse(releaseTime.substring(0, releaseTime.length() - 1));
-                LocalDateTime now = LocalDateTime.now();
+                if (connection.getResponseCode() == 200) {
+                    JSONTokener jsonTokener = new JSONTokener(new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)));
+                    JSONObject releaseInfos = new JSONObject(jsonTokener);
+                    String releaseTime = releaseInfos.getString("published_at");
+                    LocalDateTime releaseDateTime = LocalDateTime.parse(releaseTime.substring(0, releaseTime.length() - 1));
+                    LocalDateTime now = LocalDateTime.now();
 
-                if (ChronoUnit.DAYS.between(now, releaseDateTime) == 0) {
-                    if (jda != null) {
-                        jda.getPresence().setActivity(Activity.playing("update " + Main.version + " („\\(^_^)/“)"));
-                    } else {
-                        jdaBuilder.setActivity(Activity.playing("update " + Main.version + " („\\(^_^)/“)"));
-                    }
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            if (jda != null) {
-                                jda.getPresence().setActivity(null);
-                            } else {
-                                jdaBuilder.setActivity(null);
-                            }
+                    if (ChronoUnit.DAYS.between(now, releaseDateTime) == 0) {
+                        if (jda != null) {
+                            jda.getPresence().setActivity(Activity.playing("update " + Main.version + " \uD83C\uDF89"));
+                        } else {
+                            jdaBuilder.setActivity(Activity.playing("update " + Main.version + " \uD83C\uDF89"));
                         }
-                    }, TimeUnit.DAYS.toMillis(1) - ChronoUnit.MILLIS.between(now, releaseDateTime));
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (jda != null) {
+                                    jda.getPresence().setActivity(null);
+                                } else {
+                                    jdaBuilder.setActivity(null);
+                                }
+                            }
+                        }, TimeUnit.DAYS.toMillis(1) - ChronoUnit.MILLIS.between(now, releaseDateTime));
+                    }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
