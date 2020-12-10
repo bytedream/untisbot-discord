@@ -530,7 +530,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                 }
 
                 boolean changes = false;
-                boolean error = false;
                 Data.Stats stats = statsDataConnector.get(guildId);
                 String setLanguage = data.getLanguage();
                 if (setLanguage == null) {
@@ -678,20 +677,11 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 }
                             }
                             stats = statsDataConnector.get(guildId);
-
-                            if (error) {
-                                error = false;
-                            }
                         } else if (lastChecked == null || lastChecked.isBefore(now.plusDays(i))) {
                             guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
                         }
                     } catch (Exception e) {
                         logger.warn(guildId + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
-                        if (!error) {
-                            textChannel.sendMessage("An error occurred while trying to check the timetable. " +
-                                    "You can try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
-                            error = true;
-                        }
                         try {
                             Thread.sleep((i + 1) * 5000);
                         } catch (InterruptedException ignore) {
