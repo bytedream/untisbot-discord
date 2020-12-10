@@ -36,7 +36,7 @@ To see all available commands and get infos about it, simply type `help`.
 | `stop` | Stops timetable listening. Only works if data was set with the `data` command | `stop` | - |
 | `timetable [date] [class name]` | Displays the timetable for a specific date. As `date` you can use 3 formats. 1: Only the day (`12`); 2. Day and month (`13.04`); 3. Day, month and year (`31.12.2020`). Only works if data was set with the `data` command. If no date is given, the timetable for the current date is displayed. As `class name` you can use any class from your school. If class is not given, the class which was assigned in the `data` command is used | `timetable 11.11` | - |
 
-Note: All commands except for `help [command]`, `timetable [] [class]` and `<stats>` can only be executed by a member with admin rights.
+Note: All commands except for `help [command]`, `timetable [date] [class]` and `<stats>` can only be executed by a member with admin rights.
 
 ## Self-hosting
 
