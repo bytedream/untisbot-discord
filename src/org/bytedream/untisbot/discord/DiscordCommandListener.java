@@ -1,6 +1,5 @@
 package org.bytedream.untisbot.discord;
 
-import ch.qos.logback.classic.Logger;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
@@ -28,6 +27,7 @@ import org.bytedream.untisbot.untis.CheckCallback;
 import org.bytedream.untisbot.untis.TimetableChecker;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 
 import java.awt.*;
 import java.io.IOException;
@@ -322,7 +322,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                 case "channel": // `channel` command
                     if (args.length == 0) {
                         guildDataConnector.update(guild.getIdLong(), null, null, null, null, null, null, channel.getIdLong(), null, null, null, null);
-                        logger.info(guildName + " set a new channel to send the timetable changes to");
+                        logger.info(guildId + " set a new channel to send the timetable changes to");
                         channel.sendMessage("This channel is now set as the channel where I send the timetable changes in").queue();
                     } else {
                         channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help channel` for help").queue();
@@ -331,7 +331,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                 case "clear": // `clear` command
                     if (args.length == 0) {
                         guildDataConnector.update(guild.getIdLong(), null, "", "", "", "", (short) 0, null, null, null, false, null);
-                        logger.info(guildName + " cleared their data");
+                        logger.info(guildId + " cleared their data");
                         allUntisSessions.remove(guildId);
                         allTimetableChecker.remove(guildId);
                         channel.sendMessage("Cleared untis data and stopped timetable listening if active").queue();
@@ -398,7 +398,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 runTimetableChecker(guild);
                                 channel.sendMessage("✅ Timetable listening has been started for class " + className).queue();
                             }
-                            logger.info(guildName + " set new data");
+                            logger.info(guildId + " set new data");
                         }
                     } else {
                         channel.sendMessage("Wrong number of arguments were given (expected 3 or 4, got " + args.length + "), type `" + data.getPrefix() + "help data` for help").queue();
@@ -412,7 +412,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("The language `" + language + "` is not supported. Type `" + data.getPrefix() + "help` to see all available languages").queue();
                         } else {
                             guildDataConnector.update(guildId, language, null, null, null, null, null, null, null, null, null, null);
-                            logger.info(guildName + " set their language to " + language);
+                            logger.info(guildId + " set their language to " + language);
                             channel.sendMessage("Updated language to `" + language + "`").queue();
                         }
                     } else {
@@ -440,7 +440,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 note += "\n_Note_: Because the prefix is longer than 1 character you have to call commands with a blank space between it and the prefix";
                             }
                             guildDataConnector.update(guildId, null, null, null, null, null, null, null, prefix, null, null, null);
-                            logger.info(guildName + " set their prefix to " + prefix);
+                            logger.info(guildId + " set their prefix to " + prefix);
                             channel.sendMessage("Updated prefix to `" + prefix + "`" + note).queue();
                         }
                     } else {
@@ -468,7 +468,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             allTimetableChecker.remove(guildId);
                             timer.cancel();
                             timer.purge();
-                            logger.info(guildName + " stopped timetable listening");
+                            logger.info(guildId + " stopped timetable listening");
                             channel.sendMessage("Stopped timetable listening. Use `" + data.getPrefix() + "start` to re-enable it").queue();
                         } else {
                             channel.sendMessage("Timetable listening is already stopped").queue();
@@ -686,7 +686,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             guildDataConnector.update(guildId, null, null, null, null, null, null, null, null, null, null, now.plusDays(i));
                         }
                     } catch (Exception e) {
-                        logger.warn(guildName + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
+                        logger.warn(guildId + " ran into an exception while trying to check the timetable for the " + localDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), e);
                         if (!error) {
                             textChannel.sendMessage("An error occurred while trying to check the timetable. " +
                                     "You can try to re-set your data or trying to contact my author <@650417934073593886> (:3) if the problem won't go away").queue();
@@ -732,7 +732,7 @@ public class DiscordCommandListener extends ListenerAdapter {
             }
         }, 0, data.getSleepTime());
         allTimetableChecker.put(guildId, timer);
-        logger.info(guildName + " started timetable listening");
+        logger.info(guildId + " started timetable listening");
     }
 
     @Override
@@ -970,7 +970,7 @@ public class DiscordCommandListener extends ListenerAdapter {
         if (!statsDataConnector.has(guildId)) {
             statsDataConnector.add(guildId);
         }
-        logger.info("Joined new guild - Name: " + event.getGuild().getName() + " | Total guilds: " + guildDataConnector.getAll().size());
+        logger.info(String.format("Joined new guild - Name: %s / ID: %d | Total guilds: %d", event.getGuild().getName(), guildId, guildDataConnector.getAll().size()));
     }
 
     @Override
@@ -979,6 +979,6 @@ public class DiscordCommandListener extends ListenerAdapter {
         guildDataConnector.remove(guildId);
         statsDataConnector.remove(guildId);
 
-        logger.info("Left guild - Name: " + event.getGuild().getName() + " | Total guilds: " + guildDataConnector.getAll().size());
+        logger.info(String.format("Left guild - Name: %s / ID: %d | Total guilds: %d", event.getGuild().getName(), guildId, guildDataConnector.getAll().size()));
     }
 }
