@@ -1,6 +1,6 @@
 /**
  * @author ByteDream
- * @version 1.1
+ * @version 1.1.1
  */
 
 package org.bytedream.untisbot;
@@ -26,7 +26,7 @@ import java.util.HashSet;
  */
 public class Main {
 
-    public static final String version = "1.1";
+    public static final String version = "1.1.1";
 
     private static Logger logger;
     private static Connection connection;
