@@ -67,7 +67,7 @@ When you run the bot manually you can choose from 2 types of data storage:
  
 ### In-memory storage
 
-In memory data storage is pretty simple: Just download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar token=<your discord bot token>`.
+In memory data storage is pretty simple: Just download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1.1/UntisBot-1.1.1.jar) and run it with `java -jar UntisBot-<version>.jar token=<your discord bot token>`.
 The simple things have unfortunately also often disadvantages: The user data is only stored as long as the bot is running. If you shut it down, all data will be lost.
 If you want to keep the data even after a shutdown, you should use [database storage](#MariaDB).
 
@@ -84,7 +84,7 @@ To set up the database, you have to execute the following command and replace `<
 mysql -u <user> -p -e "CREATE DATABASE Untis; USE Untis; $(wget -qO- https://raw.githubusercontent.com/ByteDream/untisbot-discord/master/files/database.sql)"
 ```
 
-Now you have set up the database and are ready to go. Download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and run it with `java -jar UntisBot-1.0.jar <your discord bot token> mariadb`.
+Now you have set up the database and are ready to go. Download the [jar](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.1.1.jar) and run it with `java -jar UntisBot-<version>.jar <your discord bot token> mariadb`.
 
 ## Run options
 
@@ -130,7 +130,7 @@ If you want to use MariaDB as store type you have to add the argument `mariadb` 
 
 ---
 
-Alternatively, you can write the arguments in a `json` file and load this via `java -jar UntisBot-1.0.jar file=<file where the arguments are in>`
+Alternatively, you can write the arguments in a `json` file and load this via `java -jar UntisBot-<version>.jar file=<file where the arguments are in>`
 
 Example: 
 ```json
@@ -146,12 +146,12 @@ This might be useful when you run the bot on a server and won't that your token 
 ---
 
 In-memory examples:
- - `UntisBot-1.0.jar token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz`
- - `UntisBot-1.0.jar token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_secure_password lng=/home/user/more_languages.json`
+ - `UntisBot-<version>.jar token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz`
+ - `UntisBot-<version>.jar token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_secure_password lng=/home/user/more_languages.json`
  
 MariaDB examples:
- - `UntisBot-1.0.jar mariadb token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_ultra_secure_password`
- - `UntisBot-1.0.jar mariadb token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_ultra_secure_password user=untis password=toor`
+ - `UntisBot-<version>.jar mariadb token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_ultra_secure_password`
+ - `UntisBot-<version>.jar mariadb token=BLySFrzvz3tAHtquQevY1FF5W8CT0UMyMNmCSUCbJAPdNAmnnqYVBzaPTkz encrypt=super_ultra_secure_password user=untis password=toor`
 
 ## Language
 
@@ -171,7 +171,7 @@ If you want to add a language which isn't supported you can
 - [Database client](https://github.com/mariadb-corporation/mariadb-connector-j) (mariadb java client)
 - [Logger](https://github.com/qos-ch/logback) (logback-core and logback-classic)
 
-**_Note_: The [UntisBot jar file](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1/UntisBot-1.0.jar) and the [Dockerfile](Dockerfile) are containing all dependencies.**
+**_Note_: The [UntisBot jar file](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1.1/UntisBot-1.1.1.jar) and the [Dockerfile](Dockerfile) are containing all dependencies.**
 
 
 ## License
