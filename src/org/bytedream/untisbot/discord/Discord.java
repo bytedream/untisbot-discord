@@ -99,4 +99,14 @@ public class Discord {
         jda = jdaBuilder.build();
     }
 
+    /**
+     * Returns the running jda instance
+     *
+     * @return the jda instance
+     * @since 1.2
+     */
+    public JDA getJda() {
+        return jda;
+    }
+
 }
