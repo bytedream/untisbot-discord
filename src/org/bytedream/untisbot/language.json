@@ -1,6 +1,7 @@
 {
   "de": {
     "language": "German",
+    "holidays-title": "Ferien",
     "timetable-title": "Stundenplan für Klasse {class} am {date}",
     "timetable-lesson-title": "{lesson-number}. Stunde ({start-time} - {end-time})",
     "timetable-teachers": "_Lehrer_: {teachers}",
@@ -25,6 +26,7 @@
   },
   "en": {
     "language": "English",
+    "holidays-title": "Holidays",
     "timetable-title": "Timetable for class {class} on {date}",
     "timetable-lesson-title": "{lesson-number}. lesson ({start-time} - {end-time})",
     "timetable-teachers": "_Teacher_: {teachers}",
