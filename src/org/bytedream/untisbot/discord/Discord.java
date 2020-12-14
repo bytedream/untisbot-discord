@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class Discord {
 
     private final JDABuilder jdaBuilder;
-    private JDA jda = null;
+    private static JDA jda = null;
 
     /**
      * Configures the bot to make it ready to launch
@@ -105,7 +105,7 @@ public class Discord {
      * @return the jda instance
      * @since 1.2
      */
-    public JDA getJda() {
+    public static JDA getJda() {
         return jda;
     }
 
