@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class Discord {
 
-    private final JDABuilder jdaBuilder;
     private static JDA jda = null;
+    private final JDABuilder jdaBuilder;
 
     /**
      * Configures the bot to make it ready to launch
@@ -45,6 +45,16 @@ public class Discord {
         jdaBuilder = JDABuilder.createDefault(token);
         updateRichPresence();
         jdaBuilder.addEventListeners(new DiscordCommandListener(storeType, new Crypt(encryptPassword), languages));
+    }
+
+    /**
+     * Returns the running jda instance
+     *
+     * @return the jda instance
+     * @since 1.2
+     */
+    public static JDA getJda() {
+        return jda;
     }
 
     /**
@@ -97,16 +107,6 @@ public class Discord {
      */
     public void start() throws LoginException {
         jda = jdaBuilder.build();
-    }
-
-    /**
-     * Returns the running jda instance
-     *
-     * @return the jda instance
-     * @since 1.2
-     */
-    public static JDA getJda() {
-        return jda;
     }
 
 }

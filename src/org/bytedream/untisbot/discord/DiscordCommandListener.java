@@ -28,7 +28,10 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.awt.*;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.SQLException;
@@ -54,9 +57,8 @@ public class DiscordCommandListener extends ListenerAdapter {
     private final HashMap<Long, Session> allUntisSessions = new HashMap<>();
     private final HashMap<Long, Timer> allTimetableChecker = new HashMap<>();
     private final Logger logger = Main.getLogger();
-    private boolean maintenance = false;
-
     private final HashMap<Long, LocalDateTime> dataUpdated = new HashMap<>();
+    private boolean maintenance = false;
 
     /**
      * Sets up the adapter
@@ -113,8 +115,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         Klassen klassen = session.getKlassen();
                         StringBuilder stringBuilder = new StringBuilder();
-                        String end = klassen.size() > 10 ? "\n": ", ";
-                        for (Klassen.KlasseObject klasse: klassen) {
+                        String end = klassen.size() > 10 ? "\n" : ", ";
+                        for (Klassen.KlasseObject klasse : klassen) {
                             stringBuilder.append(klasse.getName()).append(end);
                         }
                         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
@@ -149,8 +151,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         Departments departments = session.getDepartments();
                         StringBuilder stringBuilder = new StringBuilder();
-                        String end = departments.size() > 10 ? "\n": ", ";
-                        for (Departments.DepartmentObject department: departments) {
+                        String end = departments.size() > 10 ? "\n" : ", ";
+                        for (Departments.DepartmentObject department : departments) {
                             stringBuilder.append(department.getName()).append(end);
                         }
                         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
@@ -185,13 +187,14 @@ public class DiscordCommandListener extends ListenerAdapter {
 
                     try {
                         session.reconnect();
-                    } catch (IOException ignore) {}
+                    } catch (IOException ignore) {
+                    }
 
                     EmbedBuilder embedBuilder = new EmbedBuilder();
                     embedBuilder.setColor(new Color(30, 144, 255));
                     embedBuilder.setTitle(languages.getJSONObject(data.getLanguage()).getString("holidays-title") + "⛱️");
                     try {
-                        for (Holidays.HolidaysObject holidays: Holidays.sortByStartDate(session.getHolidays())) {
+                        for (Holidays.HolidaysObject holidays : Holidays.sortByStartDate(session.getHolidays())) {
                             HashMap<String, Object> format = new HashMap<String, Object>() {{
                                 put("name", holidays.getName());
                                 put("from", holidays.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
@@ -222,8 +225,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         Rooms rooms = session.getRooms();
                         StringBuilder stringBuilder = new StringBuilder();
-                        String end = rooms.size() > 10 ? "\n": ", ";
-                        for (Rooms.RoomObject room: rooms) {
+                        String end = rooms.size() > 10 ? "\n" : ", ";
+                        for (Rooms.RoomObject room : rooms) {
                             stringBuilder.append(room.getName()).append(end);
                         }
                         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
@@ -258,8 +261,8 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         Subjects subjects = session.getSubjects();
                         StringBuilder stringBuilder = new StringBuilder();
-                        String end = subjects.size() > 10 ? "\n": ", ";
-                        for (Subjects.SubjectObject subject: subjects) {
+                        String end = subjects.size() > 10 ? "\n" : ", ";
+                        for (Subjects.SubjectObject subject : subjects) {
                             stringBuilder.append(subject.getName()).append(end);
                         }
                         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
@@ -294,7 +297,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     try {
                         Teachers teachers = session.getTeachers();
                         StringBuilder stringBuilder = new StringBuilder();
-                        for (Teachers.TeacherObject teacher: teachers) {
+                        for (Teachers.TeacherObject teacher : teachers) {
                             stringBuilder.append(teacher.getFullName()).append("\n");
                         }
                         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
@@ -329,7 +332,8 @@ public class DiscordCommandListener extends ListenerAdapter {
 
                     try {
                         session.reconnect();
-                    } catch (IOException ignore) {}
+                    } catch (IOException ignore) {
+                    }
 
                     LocalDate now = LocalDate.now();
                     Short classId = data.getKlasseId();
