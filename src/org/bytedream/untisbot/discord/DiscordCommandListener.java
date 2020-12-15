@@ -2,6 +2,7 @@ package org.bytedream.untisbot.discord;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -13,10 +14,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.bytedream.untis4j.Session;
 import org.bytedream.untis4j.UntisUtils;
-import org.bytedream.untis4j.responseObjects.Klassen;
-import org.bytedream.untis4j.responseObjects.Teachers;
-import org.bytedream.untis4j.responseObjects.TimeUnits;
-import org.bytedream.untis4j.responseObjects.Timetable;
+import org.bytedream.untis4j.responseObjects.*;
 import org.bytedream.untisbot.Crypt;
 import org.bytedream.untisbot.Main;
 import org.bytedream.untisbot.Utils;
@@ -30,7 +28,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.awt.*;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.SQLException;
@@ -56,6 +54,7 @@ public class DiscordCommandListener extends ListenerAdapter {
     private final HashMap<Long, Session> allUntisSessions = new HashMap<>();
     private final HashMap<Long, Timer> allTimetableChecker = new HashMap<>();
     private final Logger logger = Main.getLogger();
+    private boolean maintenance = false;
 
     private final HashMap<Long, LocalDateTime> dataUpdated = new HashMap<>();
 
@@ -104,17 +103,237 @@ public class DiscordCommandListener extends ListenerAdapter {
         Data.Guild data = guildDataConnector.get(guildId);
 
         switch (command) {
-            case "timetable": // `timetable [day | [day.month] | [day.month.year]] [class name]` command
-                if (args.length < 3) {
-                    Session session = allUntisSessions.get(guildId);
-                    LocalDate now = LocalDate.now();
-                    Short classId = data.getKlasseId();
-                    LocalDate date = now;
-
-                    if (data.getServer() == null && data.getSchool() == null) {
+            case "classes": // `classes` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
                         channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
                         return;
                     }
+                    try {
+                        Klassen klassen = session.getKlassen();
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String end = klassen.size() > 10 ? "\n": ", ";
+                        for (Klassen.KlasseObject klasse: klassen) {
+                            stringBuilder.append(klasse.getName()).append(end);
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        if (klassen.size() > 10 || stringBuilder.length() >= 2000) {
+                            File classesFile = File.createTempFile("classes", ".txt");
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(classesFile));
+                            writer.write(stringBuilder.toString());
+                            writer.close();
+
+                            channel.sendMessage("Too many classes to display").addFile(classesFile, "classes.txt").queue();
+                            if (!classesFile.delete()) logger.info("Could not delete classes file " + classesFile.getName());
+                        } else {
+                            channel.sendMessage(stringBuilder.toString()).queue();
+                        }
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all classes", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get classes. Perhaps the registered account does not have permission to view all classes?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "classes")).queue();
+                }
+                return;
+            case "departments": // `departments` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+                    try {
+                        Departments departments = session.getDepartments();
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String end = departments.size() > 10 ? "\n": ", ";
+                        for (Departments.DepartmentObject department: departments) {
+                            stringBuilder.append(department.getName()).append(end);
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        if (departments.size() > 10 || stringBuilder.length() >= 2000) {
+                            File departmentsFile = File.createTempFile("classes", ".txt");
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(departmentsFile));
+                            writer.write(stringBuilder.toString());
+                            writer.close();
+
+                            channel.sendMessage("Too many departments to display").addFile(departmentsFile, "departments.txt").queue();
+                            if (!departmentsFile.delete()) logger.info("Could not delete departments file " + departmentsFile.getName());
+                        } else {
+                            channel.sendMessage(stringBuilder.toString().replace("\n", ", ")).queue();
+                        }
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all classes", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get departments. Perhaps the registered account does not have permission to view all departments?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "departments")).queue();
+                }
+                return;
+            case "holidays": // `holidays` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+
+                    try {
+                        session.reconnect();
+                    } catch (IOException ignore) {}
+
+                    EmbedBuilder embedBuilder = new EmbedBuilder();
+                    embedBuilder.setColor(new Color(30, 144, 255));
+                    embedBuilder.setTitle(languages.getJSONObject(data.getLanguage()).getString("holidays-title") + "⛱️");
+                    try {
+                        for (Holidays.HolidaysObject holidays: Holidays.sortByStartDate(session.getHolidays())) {
+                            HashMap<String, Object> format = new HashMap<String, Object>() {{
+                                put("name", holidays.getName());
+                                put("from", holidays.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                                put("to", holidays.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                            }};
+                            embedBuilder.addField(Utils.advancedFormat(languages.getJSONObject(data.getLanguage()).getString("holidays-holiday-title"), format),
+                                    Utils.advancedFormat(languages.getJSONObject(data.getLanguage()).getString("holidays-body"), format),
+                                    false);
+                        }
+                        channel.sendMessage(embedBuilder.build()).queue();
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all holidays", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get holidays. Perhaps the registered account does not have permission to view all holidays?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "holidays")).queue();
+                }
+                return;
+            case "rooms": // `rooms` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+                    try {
+                        Rooms rooms = session.getRooms();
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String end = rooms.size() > 10 ? "\n": ", ";
+                        for (Rooms.RoomObject room: rooms) {
+                            stringBuilder.append(room.getName()).append(end);
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        if (rooms.size() > 10 || stringBuilder.length() >= 2000) {
+                            File roomsFile = File.createTempFile("rooms", ".txt");
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(roomsFile));
+                            writer.write(stringBuilder.toString());
+                            writer.close();
+
+                            channel.sendMessage("Too many rooms to display").addFile(roomsFile, "rooms.txt").queue();
+                            if (!roomsFile.delete()) logger.info("Could not delete rooms file " + roomsFile.getName());
+                        } else {
+                            channel.sendMessage(stringBuilder.toString().replace("\n", ", ")).queue();
+                        }
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all rooms", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get rooms. Perhaps the registered account does not have permission to view all rooms?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "rooms")).queue();
+                }
+                return;
+            case "subjects": // `subjects` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+                    try {
+                        Subjects subjects = session.getSubjects();
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String end = subjects.size() > 10 ? "\n": ", ";
+                        for (Subjects.SubjectObject subject: subjects) {
+                            stringBuilder.append(subject.getName()).append(end);
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        if (subjects.size() > 10 || stringBuilder.length() >= 2000) {
+                            File subjectsFile = File.createTempFile("subjects", ".txt");
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(subjectsFile));
+                            writer.write(stringBuilder.toString());
+                            writer.close();
+
+                            channel.sendMessage("Too many subjects to display").addFile(subjectsFile, "subjects.txt").queue();
+                            if (!subjectsFile.delete()) logger.info("Could not delete subjects file " + subjectsFile.getName());
+                        } else {
+                            channel.sendMessage(stringBuilder.toString().replace("\n", ", ")).queue();
+                        }
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all subjects", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get subjects. Perhaps the registered account does not have permission to view all subjects?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "subjects")).queue();
+                }
+                return;
+            case "teachers": // `teachers` command
+                if (args.length == 0) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+                    try {
+                        Teachers teachers = session.getTeachers();
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (Teachers.TeacherObject teacher: teachers) {
+                            stringBuilder.append(teacher.getFullName()).append("\n");
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        if (teachers.size() > 10 || stringBuilder.length() >= 2000) {
+                            File teachersFile = File.createTempFile("teachers", ".txt");
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(teachersFile));
+                            writer.write(stringBuilder.toString());
+                            writer.close();
+
+                            channel.sendMessage("Too many teachers to display").addFile(teachersFile, "teachers.txt").queue();
+                            if (!teachersFile.delete()) logger.info("Could not delete teachers file " + teachersFile.getName());
+                        } else {
+                            channel.sendMessage(stringBuilder.toString().replace("\n", ", ")).queue();
+                        }
+                    } catch (IOException e) {
+                        logger.warn(guildId + " ran into an exception while trying to receive all teachers", e);
+                        channel.sendMessage("This service is temporarily unavailable. Try it again later").queue();
+                    } catch (NullPointerException e) {
+                        channel.sendMessage("Couldn't get teachers. Perhaps the registered account does not have permission to view all teachers?").queue();
+                    }
+                } else {
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "teachers")).queue();
+                }
+                return;
+            case "timetable": // `timetable [day | [day.month] | [day.month.year]] [class name]` command
+                if (args.length < 3) {
+                    Session session = allUntisSessions.getOrDefault(guildId, null);
+                    if (session == null) {
+                        channel.sendMessage("Please set your data with the `data` command first, before you use this command. Type `" + data.getPrefix() + "help data` to get information").queue();
+                        return;
+                    }
+
+                    try {
+                        session.reconnect();
+                    } catch (IOException ignore) {}
+
+                    LocalDate now = LocalDate.now();
+                    Short classId = data.getKlasseId();
+                    LocalDate date = now;
 
                     if (args.length != 0) {
                         for (String arg : args) {
@@ -154,6 +373,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 classId = (short) session.getKlassen().findByName(arg).getId();
                             } catch (IOException e) {
                                 logger.warn(guildId + " ran into an exception while trying to receive classes for a timetable", e);
+                                channel.sendMessage("This service is temporarily unavailable. Try it again without specify a class").queue();
                                 return;
                             } catch (NullPointerException e) {
                                 channel.sendMessage("Couldn't find any class with the name '" + arg + "'").queue();
@@ -163,16 +383,10 @@ public class DiscordCommandListener extends ListenerAdapter {
                     }
                     EmbedBuilder embedBuilder = new EmbedBuilder();
                     embedBuilder.setColor(new Color(138, 43, 226));
-                    JSONObject language;
-                    if (data.getLanguage() == null) {
-                        language = languages.getJSONObject("en");
-                    } else {
-                        language = languages.getJSONObject(data.getLanguage());
-                    }
+                    JSONObject language = languages.getJSONObject(data.getLanguage());
                     String className = "-";
 
                     try {
-                        session.reconnect();
                         className = session.getKlassen().findById(classId).getName();
                     } catch (IOException ignore) {
                     }
@@ -251,7 +465,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         channel.sendMessage("Couldn't get timetable. Try again (later) or contact my author <@650417934073593886>, if the problem won't go away").queue();
                     }
                 } else {
-                    channel.sendMessage("Wrong number of arguments were given (expected 0 or 1, got " + args.length + "), type `" + data.getPrefix() + "help timetable` for help").queue();
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d or less, got %d), type `%shelp %s` for help", 3, args.length, data.getPrefix(), "timetable")).queue();
                 }
                 return;
             case "stats": // `stats` command
@@ -313,7 +527,7 @@ public class DiscordCommandListener extends ListenerAdapter {
 
                     channel.sendMessage(embedBuilder.build()).queue();
                 } else {
-                    channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help stats` for help").queue();
+                    channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "stats")).queue();
                 }
                 return;
         }
@@ -325,7 +539,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         logger.info(guildId + " set a new channel to send the timetable changes to");
                         channel.sendMessage("This channel is now set as the channel where I send the timetable changes in").queue();
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help channel` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "channel")).queue();
                     }
                     break;
                 case "clear": // `clear` command
@@ -336,7 +550,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         allTimetableChecker.remove(guildId);
                         channel.sendMessage("Cleared untis data and stopped timetable listening if active").queue();
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help clear` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "clear")).queue();
                     }
                     break;
                 case "data": // `data <username> <password> <server> <school name>` command
@@ -401,7 +615,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             logger.info(guildId + " set new data");
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 3 or 4, got " + args.length + "), type `" + data.getPrefix() + "help data` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d or %d, got %d), type `%shelp %s` for help", 3, 4, args.length, data.getPrefix(), "data")).queue();
                     }
                     break;
                 case "language": // `language <language>` command
@@ -416,7 +630,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("Updated language to `" + language + "`").queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 1, got " + args.length + "), type `" + data.getPrefix() + "help language` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 1, args.length, data.getPrefix(), "language")).queue();
                     }
                     break;
                 case "prefix": // `prefix <new prefix>` command
@@ -444,7 +658,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("Updated prefix to `" + prefix + "`" + note).queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 1, got " + args.length + "), type `" + data.getPrefix() + "help prefix` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 1, args.length, data.getPrefix(), "prefix")).queue();
                     }
                     break;
                 case "start": // `start` command
@@ -457,7 +671,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("✅ Timetable listening has been started").queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help start` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "start")).queue();
                     }
                     break;
                 case "stop": // `stop` command
@@ -474,7 +688,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage("Timetable listening is already stopped").queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + data.getPrefix() + "help stop` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, data.getPrefix(), "stop")).queue();
                     }
                     break;
                 case "help":
@@ -532,9 +746,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                 boolean changes = false;
                 Data.Stats stats = statsDataConnector.get(guildId);
                 String setLanguage = data.getLanguage();
-                if (setLanguage == null) {
-                    setLanguage = "en";
-                }
                 JSONObject language = languages.getJSONObject(setLanguage);
                 LocalDate now = LocalDate.now();
 
@@ -709,6 +920,14 @@ public class DiscordCommandListener extends ListenerAdapter {
                         main();
                     }
                 } catch (IOException e) {
+                    if (e.getMessage().contains("<title>Maintenance work</title>")) {
+                        logger.warn("Untis maintenance work", e);
+                        maintenance = true;
+                        Discord.getJda().getPresence().setActivity(Activity.playing("WebUntis maintenance work\uD83D\uDE80"));
+                        return;
+                    } else if (maintenance) {
+                        Discord.getJda().getPresence().setActivity(null);
+                    }
                     logger.info("Running main through IOException", e);
                     main();
                 } catch (Exception e) {
@@ -793,7 +1012,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                     if (args.length < 2) {
                         String help = "Use `" + prefix + "help <command>` to get help / information about a command.\n\n" +
                                 "All available commands are:\n" +
-                                "`channel` • `clear` • `data` • `info` • `help` • `language` • `prefix` • `stats` • `start` • `stop` • `timetable`";
+                                "`channel` • `classes` • `clear` • `data` • `departments` • `help` • `holidays` • `info` • `language` • `prefix` • `rooms` • `stats` • `start` • `stop` • `subjects` • `teachers` • `timetable`";
                         if (args.length == 0) {
                             channel.sendMessage(help).queue();
                         } else {
@@ -806,6 +1025,11 @@ public class DiscordCommandListener extends ListenerAdapter {
                                     title = "`channel` command";
                                     description = "In the channel where this command is entered, the bot shows the timetable changes";
                                     example = "`channel`";
+                                    break;
+                                case "classes":
+                                    title = "`classes` command";
+                                    description = "Displays all classes";
+                                    example = "`classes`";
                                     break;
                                 case "clear":
                                     title = "`clear` command";
@@ -821,15 +1045,25 @@ public class DiscordCommandListener extends ListenerAdapter {
                                     example = "`data myname secure https://example.webuntis.com/WebUntis/?school=example#/basic/main 12AB`";
                                     default_ = "`en`";
                                     break;
-                                case "info":
-                                    title = "`info` command";
-                                    description = "Displays information about the bot";
-                                    example = "`info`";
+                                case "departments":
+                                    title = "`departments` command";
+                                    description = "Displays all departments";
+                                    example = "`departments`";
+                                    break;
+                                case "holidays":
+                                    title = "`holidays` command";
+                                    description = "Displays all holidays with their name, start and end date";
+                                    example = "`holidays`";
                                     break;
                                 case "help":
                                     title = "`help <command>` command";
                                     description = "Displays help to a given command";
                                     example = "`help data`";
+                                    break;
+                                case "info":
+                                    title = "`info` command";
+                                    description = "Displays information about the bot";
+                                    example = "`info`";
                                     break;
                                 case "language":
                                     title = "`language <language>` command";
@@ -842,6 +1076,11 @@ public class DiscordCommandListener extends ListenerAdapter {
                                     description = "Changes the prefix with which commands are called";
                                     example = "`prefix $`";
                                     default_ = "`!untis `";
+                                    break;
+                                case "rooms":
+                                    title = "`rooms` command";
+                                    description = "Displays all rooms";
+                                    example = "`rooms`";
                                     break;
                                 case "stats":
                                     title = "`stats` command";
@@ -857,6 +1096,16 @@ public class DiscordCommandListener extends ListenerAdapter {
                                     title = "`stop` command";
                                     description = "Stops timetable listening. Only works if data was set with the `data` command";
                                     example = "`stop`";
+                                    break;
+                                case "subjects":
+                                    title = "`subjects` command";
+                                    description = "Displays all subjects";
+                                    example = "`subjects`";
+                                    break;
+                                case "teachers":
+                                    title = "`teachers` command";
+                                    description = "Displays all teachers";
+                                    example = "`teachers`";
                                     break;
                                 case "timetable":
                                     title = "`timetable [date] [class name]` command";
@@ -882,7 +1131,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             channel.sendMessage(embedBuilder.build()).queue();
                         }
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0 or 1, got " + args.length + "), type `" + prefix + "help help` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, prefix, "help")).queue();
                     }
                     break;
                 case "info":
@@ -896,7 +1145,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 "displays total cancelled lessons etc., and more!");
                         infoBuilder.setColor(new Color(255, 165, 0));
                         infoBuilder.addField("\uD83D\uDCDDAuthor", "<@650417934073593886>", true);
-                        infoBuilder.addField("✨Version", "[v1.1](https://github.com/ByteDream/untisbot-discord/releases/tag/v1.1)", true);
+                        infoBuilder.addField("✨Version", String.format("[v%s](https://github.com/ByteDream/untisbot-discord/releases/tag/v%s)", Main.version, Main.version), true);
                         infoBuilder.addField("❓Help", "`" + prefix + "help`", true);
                         infoBuilder.addField("❤️️Source / GitHub", "[Source code!](https://github.com/ByteDream/untisbot-discord)", true);
                         //infoBuilder.addField("Total guilds (server)", String.valueOf(guildDataConnector.getAll().size()), true);
@@ -904,7 +1153,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                         infoBuilder.addField("\uD83D\uDD10️Data encryption algorithm", "[AES-256](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)", true);
                         channel.sendMessage(infoBuilder.build()).queue();
                     } else {
-                        channel.sendMessage("Wrong number of arguments were given (expected 0, got " + args.length + "), type `" + prefix + "help info` for help").queue();
+                        channel.sendMessage(String.format("Wrong number of arguments were given (expected %d, got %d), type `%shelp %s` for help", 0, args.length, prefix, "info")).queue();
                     }
                     break;
             }
@@ -915,14 +1164,22 @@ public class DiscordCommandListener extends ListenerAdapter {
 
     @Override
     public void onReady(ReadyEvent event) {
-        ArrayList<Long> allGuilds = new ArrayList<>();
+        HashMap<Long, Guild> allGuilds = new HashMap<>();
         for (Guild guild : event.getJDA().getGuilds()) {
             long guildId = guild.getIdLong();
+            boolean timetableCheck = false;
+            boolean newGuild = false;
             if (!guildDataConnector.has(guildId)) {
                 guildDataConnector.add(guildId);
+                newGuild = true;
             }
             if (!statsDataConnector.has(guildId)) {
                 statsDataConnector.add(guildId);
+                newGuild = true;
+            }
+
+            if (newGuild) {
+                logger.info(String.format("Joined guild while I was offline: %s (%d)", guild.getName(), guildId));
             }
 
             Data.Guild data = guildDataConnector.get(guildId);
@@ -930,20 +1187,25 @@ public class DiscordCommandListener extends ListenerAdapter {
                 try {
                     allUntisSessions.put(guildId, Session.login(data.getUsername(), data.getPassword(), data.getServer(), data.getSchool()));
                 } catch (IOException e) {
-                    logger.error("Error for guild " + guild.getName() + " (" + guildId + ") while setting up untis session", e);
+                    logger.error(String.format("Error for guild %s (%d)", guild.getName(), guildId), e);
                     continue;
                 }
             }
             if (guildDataConnector.get(guildId).isCheckActive()) {
                 runTimetableChecker(guild);
+                timetableCheck = true;
             }
 
-            allGuilds.add(guildId);
+            allGuilds.put(guildId, guild);
+
+            logger.info(String.format("Set up guild %s (%d) / Timetable check: %s", guild.getName(), guildId, (timetableCheck) ? "yes" : "no"));
         }
         for (Data.Guild data : guildDataConnector.getAll()) {
-            if (!allGuilds.contains(data.getGuildId())) {
-                guildDataConnector.remove(data.getGuildId());
-                statsDataConnector.remove(data.getGuildId());
+            long guildId = data.getGuildId();
+            if (!allGuilds.containsKey(guildId)) {
+                guildDataConnector.remove(guildId);
+                statsDataConnector.remove(guildId);
+                logger.info(String.format("Left guild while I was offline: %s (%d)", allGuilds.get(guildId).getName(), guildId));
             }
         }
         logger.info("Bot is ready | Total guilds: " + guildDataConnector.getAll().size());
