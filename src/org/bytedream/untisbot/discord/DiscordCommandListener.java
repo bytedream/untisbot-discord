@@ -577,6 +577,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                             short klasseId;
                             try {
                                 channel.sendMessage("Verifying data...").queue();
+                                System.out.println(args[0] + args[1] + server + schoolName);
                                 Session session = Session.login(args[0], args[1], server, schoolName);
                                 if (args.length == 3) {
                                     klasseId = (short) session.getInfos().getKlasseId();
@@ -593,6 +594,7 @@ public class DiscordCommandListener extends ListenerAdapter {
                                 }
                                 allUntisSessions.putIfAbsent(guildId, session);
                             } catch (IOException e) {
+                                logger.warn("Error while trying to login", e);
                                 channel.sendMessage("❌ The given login data is invalid").queue();
                                 return;
                             }
@@ -962,10 +964,9 @@ public class DiscordCommandListener extends ListenerAdapter {
                 return;
             }
             String userInput = event.getMessage().getContentDisplay().substring(data.getPrefix().length()).trim().replaceAll(" +", " ");
-            String userInputLow = userInput.toLowerCase();
 
-            String[] splitCommand = userInputLow.split(" ");
-            String command = splitCommand[0];
+            String[] splitCommand = userInput.split(" ");
+            String command = splitCommand[0].toLowerCase();
             String[] args = Arrays.copyOfRange(splitCommand, 1, splitCommand.length);
             try {
                 runCommand(event.getGuild(), event.getChannel(), event.getMember().getPermissions().contains(Permission.ADMINISTRATOR), command, args);
