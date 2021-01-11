@@ -577,7 +577,6 @@ public class DiscordCommandListener extends ListenerAdapter {
                             short klasseId;
                             try {
                                 channel.sendMessage("Verifying data...").queue();
-                                System.out.println(args[0] + args[1] + server + schoolName);
                                 Session session = Session.login(args[0], args[1], server, schoolName);
                                 if (args.length == 3) {
                                     klasseId = (short) session.getInfos().getKlasseId();
