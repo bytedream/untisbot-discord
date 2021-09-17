@@ -1,3 +1,5 @@
+**In his current state, this bot is a huge mess and it's easier to completely rewrite it than continue developing and fix all the ugly stuff**
+
 ### UntisBot
 
 **UntisBot** is a java programmed discord bot, which uses the [WebUntis](https://webuntis.com/) timetable software / api
